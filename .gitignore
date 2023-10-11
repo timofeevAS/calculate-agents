@@ -2,6 +2,12 @@
 __pycache__/
 *.py[cod]
 *$py.class
+.venv/
+.idea/
+
+# Agents json
+agents.json
+
 
 # C extensions
 *.so
