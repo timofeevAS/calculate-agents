@@ -1,13 +1,13 @@
 from pydantic import BaseModel
 
 
-class Agent(BaseModel):
+class Worker(BaseModel):
     """
-    Model of Agent
+    Model of Worker
     """
     task: str | None = None
     name: str | None = None
-    is_busy: bool | None = None
+    state: bool | None = None
 
 
 class HeadAgent(BaseModel):
