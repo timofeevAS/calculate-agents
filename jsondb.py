@@ -36,3 +36,7 @@ class JsonDB:
     def remove_record(self, index):
         if 0 <= index < len(self.data):
             del self.data[index]
+
+# change ekalugin
+    def getNone(self):
+        return [worker for worker in self.data if worker.get("status") is None]
