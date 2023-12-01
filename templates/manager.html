@@ -15,6 +15,14 @@
     <form id="addWorkerForm">
         <button type="button" onclick="addWorker()">Add Worker</button>
     </form>
+     <form method="post" action="/workers/tasks/" enctype="multipart/form-data">
+        <label for="file">Select a file:</label>
+        <input type="file" id="file" name="file" accept=".py">
+        <button type="submit">Upload Task</button>
+    </form>
+    <ul id="tasksQueue">
+        <!-- Queue of tasks here -->
+    </ul>
 
     <script>
         function updateWorkersList() {

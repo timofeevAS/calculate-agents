@@ -1,7 +1,7 @@
 import platform
 
 import uvicorn
-from fastapi import FastAPI, Request, status, Response
+from fastapi import FastAPI, Request, status, Response, UploadFile
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
 
@@ -9,30 +9,53 @@ from jsondb import JsonDB
 from models import Worker, Task, State
 from utils import find_free_port
 
-from queue import Queue
 import subprocess
+
 
 app = FastAPI()
 templates = Jinja2Templates(directory='templates')
 
-tasks = Queue()  # Queue for storage tasks
+tasks = []  # queue for storage tasks
 workers = JsonDB('workers.json')  # Database in json format for storage information about workers
 
 manager_address = ""
 
 
-@app.post("/workers/append_task/")
-async def append_task(task: Task):
+@app.post("/workers/tasks/")
+async def append_task(file: UploadFile):
     """
     Method to append a task into queue
-    :param task:
+    :param file:
     :return:
     """
 
-    tasks.put(task)
-    print(f"{task}")
-    return Response(content={"message": f"{task} added into queue."},
-                    status_code=status.HTTP_201_CREATED)
+    # Prepare Task to put into queue
+    task = Task(file=file, name=file.filename)
+    tasks.append(task)
+
+    print(f"Into Queue add: {task.name}")
+    return JSONResponse(content={"message": f"{task.name} added into queue."},
+                        status_code=status.HTTP_201_CREATED)
+
+@app.get("/workers/tasks/")
+async def tasks_queue(request: Request):
+    """
+    Method to append a task into queue
+    :return:
+    """
+
+    response_data = []
+    for task in tasks:
+        response_data.append({'name': task.name})
+
+    return JSONResponse(content=response_data,
+                        status_code=status.HTTP_200_OK)
+
+
+
+
+
+
 
 
 def choose_worker():
@@ -62,7 +85,7 @@ async def take_task():
             workers.save()
             return {"message": f"Assigned task '{task['name']}' to worker '{worker_data['name']}'.",
                     "worker_task": worker_data["task"]}
-        except Queue.Empty:
+        except Exception as e:
             return {"message": "Task queue is empty."}
     else:
         return {"message": "No available workers."}
@@ -86,7 +109,6 @@ async def create_worker(request: Request):
             print('Unsupported system')
             return False
 
-
         try:
             subprocess.run(run_server_command, shell=True)
         except subprocess.CalledProcessError as e:
@@ -102,10 +124,9 @@ async def create_worker(request: Request):
         run_worker(host, port)  # Running new worker
     except Exception as e:
         return JSONResponse(content={'message': f'Error via creating a new worker {e}'},
-                        status_code=status.HTTP_400_BAD_REQUEST)
+                            status_code=status.HTTP_400_BAD_REQUEST)
     workers.save()  # Saving the updated worker list
     print(f'Created worker: {worker}')
-
 
     return JSONResponse(content={'message': f'Created and run a new worker {worker}'},
                         status_code=status.HTTP_201_CREATED)
