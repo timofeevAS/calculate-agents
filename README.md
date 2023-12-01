@@ -21,7 +21,7 @@ cd ../..
 ## Run
 
 ```bash
-python manage.py
+python main.py
 ```
 
 Your application can available [127.0.0.1:8000](http://127.0.0.1:8000/docs)
