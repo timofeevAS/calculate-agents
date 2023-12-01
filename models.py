@@ -2,6 +2,7 @@ from fastapi import UploadFile
 from pydantic import BaseModel
 from enum import Enum
 
+
 class State(str, Enum):
     """
     Model of state for worker
@@ -9,6 +10,8 @@ class State(str, Enum):
     READY = 'ready'
     BUSY = 'busy'
     ERROR = 'error'
+
+
 class Task(BaseModel):
     """
     Model of Task
@@ -16,12 +19,15 @@ class Task(BaseModel):
     name: str
     file: UploadFile
 
+    def __str__(self):
+        return self.name
+
 
 class Worker(BaseModel):
     """
     Model of Worker
     """
-    task: Task
+    task: Task | None = None
     name: str | None = None
     state: State | None = None
 
@@ -29,11 +35,6 @@ class Worker(BaseModel):
         self.task = task
         self.state = State.READY
 
-
-class HeadAgent(BaseModel):
-    """
-    Model of HeadAgent
-    """
-    name: str | None = None
-
-
+    def __str__(self):
+        task_str = str(self.task) if self.task else ''
+        return f'Worker: ({self.name}) -> {str(self.state)} -> {task_str}'

@@ -1,0 +1,51 @@
+<!-- templates/manager.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FastAPI HTML Page</title>
+</head>
+<body>
+    <h1>Manager Lewis is welcoming you!</h1>
+    <h2>List of Workers</h2>
+    <ul id="workersList">
+    <!-- List of workers here -->
+    </ul>
+    <form id="addWorkerForm">
+        <button type="button" onclick="addWorker()">Add Worker</button>
+    </form>
+
+    <script>
+        function updateWorkersList() {
+            fetch('http://127.0.0.1:8000/workers/')  // Замените на ваш реальный endpoint для получения списка воркеров
+                .then(response => response.json())
+                .then(data => {
+                    const workersListElement = document.getElementById('workersList');
+                    workersListElement.innerHTML = '';
+
+
+                    data.forEach(worker => {
+                        const listItem = document.createElement('li');
+                        listItem.textContent = `Worker: ${worker.name} -> ${worker.state} -> ${worker.task ? worker.task.name : 'No task'}`;
+                        workersListElement.appendChild(listItem);
+                    });
+                })
+                .catch(error => console.error('Error updating workers list:', error));
+        }
+
+        function addWorker() {
+            fetch('http://127.0.0.1:8000/workers/', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Created new worker:', data);
+                    updateWorkersList();
+                })
+                .catch(error => console.error('Error adding worker:', error));
+        }
+
+        document.addEventListener('DOMContentLoaded', updateWorkersList);
+    </script>
+
+</body>
+</html>

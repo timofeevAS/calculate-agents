@@ -21,7 +21,7 @@ cd ../..
 ## Run
 
 ```bash
-uvicorn main:app --reload    
+python manage.py
 ```
 
 Your application can available [127.0.0.1:8000](http://127.0.0.1:8000/docs)
