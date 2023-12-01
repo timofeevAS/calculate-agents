@@ -18,10 +18,17 @@ cd ./.venv/Scripts
 cd ../..
 ```
 
-## Run
+## Run 
 
 ```bash
 python main.py
+```
+
+## Build in Linux 
+
+```bash
+./venv/bin/activate
+xterm -e "python main.py" &
 ```
 
 Your application can available [127.0.0.1:8000](http://127.0.0.1:8000/docs)
