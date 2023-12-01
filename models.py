@@ -16,8 +16,14 @@ class Task(BaseModel):
     """
     Model of Task
     """
-    name: str
-    file: UploadFile
+    name: str | None = None
+    file: UploadFile | None = None
+
+    def __init__(self,name):
+        super().__init__(name=name)
+
+    def __init__(self):
+        super().__init__(name="")
 
     def __str__(self):
         return self.name

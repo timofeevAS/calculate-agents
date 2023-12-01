@@ -104,7 +104,7 @@ async def create_worker(request: Request):
         if platform.system() == 'Windows':
             run_server_command = f'start python worker.py {host} {port}'
         elif platform.system() == 'Linux':
-            run_server_command = f"xterm -e 'python worker.py {host} {port}'"
+            run_server_command = f"xterm -e 'python worker.py {host} {port}' &"
         else:
             print('Unsupported system')
             return False
