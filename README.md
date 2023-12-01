@@ -27,7 +27,7 @@ python main.py
 ## Build in Linux 
 
 ```bash
-./venv/bin/activate
+source ./venv/bin/activate
 xterm -e "python main.py" &
 ```
 
