@@ -6,7 +6,8 @@ __pycache__/
 .idea/
 
 # Agents json
-workers.json
+agents.json
+tasks.json
 
 
 # C extensions

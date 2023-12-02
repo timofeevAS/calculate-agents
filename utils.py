@@ -1,5 +1,22 @@
+import platform
 import socket
+import subprocess
 
+
+def run_agent(host: str, port: str, role='worker'):
+    run_server_command = ''
+    if platform.system() == 'Windows':
+        run_server_command = f'start python agent.py {host} {port} --role {role}'
+    elif platform.system() == 'Linux':
+        run_server_command = f"xterm -e 'python agent.py {host} {port} --role {role}' &"
+    else:
+        print('Unsupported system')
+        return False
+
+    try:
+        subprocess.run(run_server_command, shell=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error starting worker: {e}")
 
 
 def find_free_port(start_port, end_port):

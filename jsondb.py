@@ -1,11 +1,15 @@
 import json
 
+from pydantic import BaseModel
+
+
 class JsonDB:
     """
     Class to work with JSON
     """
+
     def __init__(self, filename):
-        #Initialize the JsonDB object
+        # Initialize the JsonDB object
         #:param filename: The filename of the JSON file to use
         self.data = None
         self.filename = filename
@@ -34,13 +38,13 @@ class JsonDB:
         with open(self.filename, 'w') as file:
             json.dump(self.data, file, indent=4)
 
-    def add_record(self, record):
+    def add_record(self, record: BaseModel):
         """
         Add a record to the JSON data
         This method adds the specified record to the `self.data` list.
         :param record: The record to add
         """
-        self.data.append(record)
+        self.data.append(dict(record))
 
     def get_record(self, index):
         """
@@ -54,6 +58,16 @@ class JsonDB:
         else:
             return None
 
+    def get_or_create(self, obj):
+        """
+        Get a record from the JSON data or create new
+        Args:
+            data:
+        :return:
+        """
+        if obj not in self.data:
+            self.add_record(obj)
+        return obj
     def get_all_records(self):
         """
         Get all records from the JSON data
@@ -73,7 +87,7 @@ class JsonDB:
         if 0 <= index < len(self.data):
             del self.data[index]
 
-# change ekalugin
+    # change ekalugin
     def getNone(self):
         """
         Get all records where the "status" field is None
@@ -83,3 +97,6 @@ class JsonDB:
         :return: A list of records where the "status" field is None
         """
         return [worker for worker in self.data if worker.get("status") is None]
+
+    def __contains__(self, key):
+        return key in self.data

@@ -1,46 +1,52 @@
 from fastapi import UploadFile
 from pydantic import BaseModel
 from enum import Enum
+from typing import Optional
 
 
 class State(str, Enum):
     """
-    Model of state for worker
+    Model of state for agent
     """
     READY = 'ready'
     BUSY = 'busy'
     ERROR = 'error'
 
 
+class Role(str, Enum):
+    """
+    Model of role for agent
+    """
+    MANAGER = 'manager'
+    WORKER = 'worker'
+
+    def __str__(self):
+        return self.value.capitalize()
+
+
 class Task(BaseModel):
     """
     Model of Task
     """
-    name: str | None = None
-    file: UploadFile | None = None
+    name: Optional[str] = None
+    file: Optional[UploadFile] = None
 
-    def __init__(self,name):
+    def __init__(self, name=""):
         super().__init__(name=name)
-
-    def __init__(self):
-        super().__init__(name="")
 
     def __str__(self):
         return self.name
 
 
-class Worker(BaseModel):
+class Agent(BaseModel):
     """
-    Model of Worker
+    Model for Agent
     """
-    task: Task | None = None
-    name: str | None = None
-    state: State | None = None
-
-    def add_task(self, task: Task):
-        self.task = task
-        self.state = State.READY
+    task: Optional[Task] = None
+    name: Optional[str] = None
+    state: Optional[State] = None
+    role: Optional[Role] = None
 
     def __str__(self):
-        task_str = str(self.task) if self.task else ''
-        return f'Worker: ({self.name}) -> {str(self.state)} -> {task_str}'
+        task_str = '->' + str(self.task) if self.task else ''
+        return f'{self.role}: ({self.name}) -> {str(self.state)} {task_str}'
