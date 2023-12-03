@@ -111,6 +111,10 @@ async def create_worker(request: Request):
     :param request:
     :return:
     """
+    if whoami.role != Role('manager'):
+        return JSONResponse(content={'error': f'Not allowed. Worker can\'t making friends'},
+                            status_code=status.HTTP_400_BAD_REQUEST)
+
     # Filling data in a new Worker
     free_port = find_free_port(8000, 8080)
     localhost = '127.0.0.1'
@@ -130,7 +134,7 @@ async def create_worker(request: Request):
                         status_code=status.HTTP_201_CREATED)
 
 
-@app.get("/workers/")
+@app.get("/manager/workers/")
 async def get_workers():
     """
     Method to get list of all workers
@@ -150,7 +154,6 @@ async def get_workers_none():
 
 @app.get('/')
 async def home_page(request: Request):
-    print(whoami)
     name = str(whoami.role) + " " + hashlib.sha256(whoami.name.encode('utf-8')).hexdigest()[:10]
 
     if whoami.role == Role('manager'):
@@ -164,5 +167,7 @@ if __name__ == '__main__':
     # Access the arguments using args.host, args.port, and args.role
     host = args.host
     port = args.port
+
+    print(f'Initialize agent with: \n{whoami}')
 
     uvicorn.run("agent:app", host=host, port=port, reload=True)

@@ -24,8 +24,10 @@
     </ul>
 
     <script>
+
+        const API_URL = 'http://127.0.0.1:8000/manager/workers/'
         function updateWorkersList() {
-            fetch('http://127.0.0.1:8000/workers/')
+            fetch(API_URL)
                 .then(response => response.json())
                 .then(data => {
                     const workersListElement = document.getElementById('workersList');
@@ -42,7 +44,7 @@
         }
 
         function addWorker() {
-            fetch('http://127.0.0.1:8000/workers/', { method: 'POST' })
+            fetch(API_URL, { method: 'POST' })
                 .then(response => response.json())
                 .then(data => {
                     console.log('Created new worker:', data);
