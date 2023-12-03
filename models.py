@@ -31,8 +31,8 @@ class Task(BaseModel):
     name: Optional[str] = None
     file: Optional[UploadFile] = None
 
-    def __init__(self, name=""):
-        super().__init__(name=name)
+    def __init__(self, name="", file=None):
+        super().__init__(name=name, file=file)
 
     def __str__(self):
         return self.name

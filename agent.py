@@ -1,10 +1,13 @@
 import argparse
+import os
+import aiohttp
+import asyncio
 import platform
 
 import hashlib
 
 import uvicorn
-from fastapi import FastAPI, Request, status, Response, UploadFile
+from fastapi import FastAPI, Request, status, Response, UploadFile, HTTPException
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
 
@@ -40,6 +43,63 @@ whoami = Agent(name=f'{args.host}:{args.port}', role=args.role)
 
 
 @app.post("/workers/tasks/")
+async def worker_task(request: Request):
+    if whoami.role != Role('worker'):
+        return JSONResponse(content={'error': 'Manager can\'t work, just control!'},
+                            status_code=status.HTTP_400_BAD_REQUEST)
+
+    data = await request.json()
+    task_name = data.get("task_name", None)
+
+    if task_name is None:
+        return JSONResponse(content={"error": "task_name not provided in the request body"},
+                            status_code=status.HTTP_400_BAD_REQUEST)
+    file_path = os.path.join("task_sources", task_name)
+
+    try:
+        log_directory = 'tasks_log'
+        if not os.path.exists(log_directory):
+            os.makedirs(log_directory)
+
+        log_file_path = os.path.join(log_directory, f'{task_name}.txt')
+
+        whoami.state = State('busy')
+
+        # Assuming file_path contains the path to the executable
+        result = subprocess.run(['python', file_path], capture_output=True, text=True)
+        output = result.stdout
+        error = result.stderr
+        status_code = result.returncode
+
+        with open(log_file_path, 'w') as log_file:
+            log_file.write(output)
+
+        whoami.state = State('ready')
+
+        if status_code == 0:
+            response_data = {'output': output, 'log_file_path': log_file_path}
+            return JSONResponse(content=response_data, status_code=status.HTTP_200_OK)
+        else:
+            response_data = {'error': error, 'log_file_path': log_file_path}
+            return JSONResponse(content=response_data, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return JSONResponse(content={'error': str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def give_task_to_worker(worker, task):
+    payload = {'task_name': task['name']}
+
+    async with aiohttp.ClientSession() as session:
+        worker_url = f"http://{worker['name']}/workers/tasks/"
+        try:
+            async with session.post(worker_url, json=payload) as response:
+                result = await response.json()
+                print(f"Task given to worker {worker['name']}, response: {result}")
+        except Exception as e:
+            print(f"Error giving task to worker {worker['name']}: {str(e)}")
+
+
+@app.post("/manager/tasks/")
 async def append_task(file: UploadFile):
     """
     Method to append a task into queue
@@ -49,59 +109,63 @@ async def append_task(file: UploadFile):
 
     # Prepare Task to put into queue
     task = Task(name=file.filename, file=file)
-    tasks_db.add_record(task)
+    tasks_db.add_record({'name': task.name})
+    tasks_db.save()
 
-    print(f"Into Queue add: {task.name}")
+    # Save the file to the 'task_sources' directory
+    save_directory = "task_sources"
+    if not os.path.exists(save_directory):
+        os.makedirs(save_directory)
+
+    file_path = os.path.join(save_directory, file.filename)
+
+    try:
+        with open(file_path, "wb") as file_dest:
+            file_dest.write(file.file.read())
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
+
+    # Try to find all free agents and give him a tasks
+
+    free_workers = []
+
+    for agent in agents_db.get_all_records():
+        if agent['role'] == 'worker' and agent['state'] == 'ready':
+            # If agent worker and free we can prepare him to task
+            free_workers.append(agent)
+            print(f'Worker {agent["name"]}: is ready to work! \n')
+
+    # Giving tasks for free_workers
+    tasks = tasks_db.get_all_records()
+    given_tasks = 0
+    print(f'All tasks: {tasks}')
+
+    # Use asyncio.gather to perform asynchronous requests to all workers
+    tasks_to_workers = []
+
+    for index, worker in enumerate(free_workers):
+        print(f"Giving task_{index} for worker {worker}")
+        # Here we need give task for free agent
+        tasks_to_workers.append(give_task_to_worker(worker, tasks[index]))
+
+        given_tasks += 1
+        if given_tasks == len(tasks):
+            break
+
+    await asyncio.gather(*tasks_to_workers)
+
     return JSONResponse(content={"message": f"{task.name} added into queue."},
                         status_code=status.HTTP_201_CREATED)
 
 
-@app.get("/workers/tasks/")
-async def tasks_queue(request: Request):
-    """
-    Method to append a task into queue
-    :return:
-    """
+@app.get("/manager/tasks/")
+async def tasks_list(request: Request):
+    # Take all tasks
+    tasks = tasks_db.get_all_records()
 
-    response_data = []
-    for task in tasks_db.get_all_records():
-        response_data.append({'name': task.name})
-
-    return JSONResponse(content=response_data,
-                        status_code=status.HTTP_200_OK)
-
-
-def choose_worker():
-    """
-    Method that returns the first busy worker
-    :return:
-    """
-    none_workers = agents_db.getNone()
-    if none_workers:
-        return none_workers[0]
-    else:
-        return None
-
-
-@app.post("/workers/take_task/")
-async def take_task():
-    """
-    Method to assign a task to the first available worker
-    :return:
-    """
-    worker_data = choose_worker()
-    if worker_data:
-        try:
-            task = tasks_db.get_nowait()
-            worker_data["task"] = task
-            worker_data["state"] = State.READY
-            agents_db.save()
-            return {"message": f"Assigned task '{task['name']}' to worker '{worker_data['name']}'.",
-                    "worker_task": worker_data["task"]}
-        except Exception as e:
-            return {"message": "Task queue is empty."}
-    else:
-        return {"message": "No available workers."}
+    res = [(task['name']) for task in tasks]
+    print(tasks)
+    return JSONResponse(content=res, status_code=status.HTTP_200_OK)
 
 
 @app.post("/manager/workers/")
@@ -170,4 +234,4 @@ if __name__ == '__main__':
 
     print(f'Initialize agent with: \n{whoami}')
 
-    uvicorn.run("agent:app", host=host, port=port, reload=True)
+    uvicorn.run("agent:app", host=host, port=port, reload=False)

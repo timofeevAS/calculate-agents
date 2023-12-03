@@ -12,14 +12,27 @@ tasks_db = JsonDB(TASKS_DB_NAME)
 # This is the main entry point for the application
 if __name__ == "__main__":
 
-    # Check if manager already exist in jsonDB
+    manager_ran = False
+    # Execute agents from DataBase
     for agent in agents_db.get_all_records():
         hostname = agent['name']
         host, port = hostname.split(':')
         print(agent)
         try:
             run_agent(host,port,agent['role'])
+            manager_ran = (manager_ran or agent['role'] == 'manager')
         except Exception as e:
             print(f'Failed to run with {e}')
-
         print(f'Successful run: {agent}')
+
+    if not manager_ran:
+        manager = Agent(
+            name='127.0.0.1:8000',
+            role=Role('manager'),
+            state=State('ready'),
+            task=None
+        )
+
+        agents_db.add_record(manager)
+        agents_db.save()
+        run_agent('127.0.0.1','8000','manager')
