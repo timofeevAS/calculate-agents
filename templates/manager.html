@@ -19,6 +19,9 @@
         <input type="file" id="file" name="file" accept=".py">
         <button type="submit">Upload Task</button>
     </form>
+    <form id="clearWorkersForm">
+        <button type="button" onclick="clearWorkersList()">Clear Workers List</button>
+    </form>
     <ul id="tasksQueue">
         <!-- Queue of tasks here -->
     </ul>
@@ -54,6 +57,10 @@
         }
 
         document.addEventListener('DOMContentLoaded', updateWorkersList);
+        function clearWorkersList() {
+            const workersListElement = document.getElementById('workersList');
+            workersListElement.innerHTML = ''; // Очистить содержимое списка
+        }
     </script>
 
 </body>
