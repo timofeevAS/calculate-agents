@@ -3,12 +3,12 @@ import socket
 import subprocess
 
 
-def run_agent(host: str, port: str, role='worker'):
+def run_agent(host: str, port: str, role='worker', manager_address=''):
     run_server_command = ''
     if platform.system() == 'Windows':
-        run_server_command = f'start python agent.py {host} {port} --role {role}'
+        run_server_command = f'start python agent.py {host} {port} {manager_address} --role {role}'
     elif platform.system() == 'Linux':
-        run_server_command = f"xterm -e 'python agent.py {host} {port} --role {role}' &"
+        run_server_command = f"xterm -e 'python agent.py {host} {port} {manager_address} --role {role}' &"
     else:
         print('Unsupported system')
         return False

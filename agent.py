@@ -7,7 +7,7 @@ import platform
 import hashlib
 
 import uvicorn
-from fastapi import FastAPI, Request, status, Response, UploadFile, HTTPException
+from fastapi import FastAPI, Request, status, UploadFile, HTTPException
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
 
@@ -20,13 +20,12 @@ import subprocess
 import logging
 from logging.handlers import RotatingFileHandler
 
-
 from main import agents_db, tasks_db
 
 app = FastAPI()
 templates = Jinja2Templates(directory='templates')
 
-#setting up logging
+# setting up logging
 log_formatter = logging.Formatter('%(asctime)s %(levelname)s %(funcName)s(%(lineno)d) %(message)s')
 log_handler = RotatingFileHandler('app.log', maxBytes=100000, backupCount=3)
 log_handler.setFormatter(log_formatter)
@@ -35,9 +34,6 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 logger.addHandler(log_handler)
 
-console_handler = logging.StreamHandler()
-console_handler.setFormatter(log_formatter)
-logger.addHandler(console_handler)
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Agent Configuration')
@@ -46,6 +42,8 @@ def parse_args():
     parser.add_argument('host', type=str, help='Host address')
 
     parser.add_argument('port', type=int, help='Port number')
+
+    parser.add_argument('manager_address', type=str, help='Manager address')
 
     # Optional argument with default value 'manager' if not provided
     parser.add_argument('--role', type=str, default='worker', choices=['manager', 'worker'],
@@ -56,6 +54,7 @@ def parse_args():
 
 args = parse_args()
 whoami = Agent(name=f'{args.host}:{args.port}', role=args.role)
+manager_address = args.manager_address
 
 
 @app.post("/workers/tasks/")
@@ -80,7 +79,7 @@ async def worker_task(request: Request):
         if not os.path.exists(log_directory):
             os.makedirs(log_directory)
 
-        log_file_path = os.path.join(log_directory, f'{task_name}.txt')
+        log_file_path = os.path.join(log_directory, f'{task_name}_{whoami.name}.txt')
 
         whoami.state = State('busy')
 
@@ -132,7 +131,6 @@ async def append_task(file: UploadFile):
     """
 
     # Prepare Task to put into queue
-    logger.info(whoami)
     task = Task(name=file.filename, file=file)
     tasks_db.add_record({'name': task.name})
     tasks_db.save()
@@ -161,26 +159,23 @@ async def append_task(file: UploadFile):
             free_workers.append(agent)
             logger.info(f'Worker {agent["name"]}: is ready to work!')
 
-
     # Giving tasks for free_workers
     tasks = tasks_db.get_all_records()
-    given_tasks = 0
     logger.info(f'All tasks: {tasks}')
 
-
     # Use asyncio.gather to perform asynchronous requests to all workers
-    tasks_to_workers = []
+    task_args = []
 
     for index, worker in enumerate(free_workers):
+        if index >= len(tasks):
+            break  # Break if there are no more tasks
+        print(f"Giving task_{index} for worker {worker}")
         logger.info(f"Giving task_{index} for worker {worker}")
-        # Here we need give task for free agent
-        tasks_to_workers.append(give_task_to_worker(worker, tasks[index]))
+        task_args.append((worker, tasks[index]))
 
-        given_tasks += 1
-        if given_tasks == len(tasks):
-            break
+    print(task_args)
 
-    await asyncio.gather(*tasks_to_workers)
+    await asyncio.gather(*(give_task_to_worker(*args) for args in task_args))
 
     return JSONResponse(content={"message": f"{task.name} added into queue."},
                         status_code=status.HTTP_201_CREATED)
@@ -188,7 +183,6 @@ async def append_task(file: UploadFile):
 
 @app.get("/manager/tasks/")
 async def tasks_list(request: Request):
-    logger.info(whoami)
     try:
         # Take all tasks
         tasks = tasks_db.get_all_records()
@@ -200,6 +194,7 @@ async def tasks_list(request: Request):
         logger.exception(f'Error when getting the task list: {str(e)}')
         return JSONResponse(content={'error': str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 @app.post("/manager/workers/")
 async def create_worker(request: Request):
     """
@@ -207,7 +202,6 @@ async def create_worker(request: Request):
     :param request:
     :return:
     """
-    logger.info(whoami)
     try:
         if whoami.role != Role('manager'):
             logger.error('Unacceptable. The manager cannot create workers.')
@@ -220,7 +214,7 @@ async def create_worker(request: Request):
 
         worker = Agent(name=f"{localhost}:{free_port}", state=State('ready'), role=Role('worker'))
         try:
-            run_agent(localhost, free_port, 'worker')  # Running new worker
+            run_agent(localhost, free_port, 'worker', manager_address=manager_address)  # Running new worker
         except Exception as e:
             # If we cant run new worker
             logger.error(f'Error when creating a new worker: {e}')
@@ -243,7 +237,6 @@ async def get_workers():
     Method to get list of all workers
     :return
     """
-    logger.info(whoami)
     try:
         # Method to get list of all workers
         workers = agents_db.get_all_records()
@@ -260,7 +253,6 @@ async def get_workers_none():
            Method who return list of workers whit state is None
            :return:
            """
-    logger.info(whoami)
     try:
         none_workers = agents_db.getNone()
         logger.info("The list of workers with the status None has been successfully received")
@@ -269,9 +261,9 @@ async def get_workers_none():
         logger.exception(f'Error when getting a list of workers with the status None: {str(e)}')
         return JSONResponse(content={'error': str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 @app.get('/')
 async def home_page(request: Request):
-    logger.info(whoami)
     try:
         # Generate a unique name using role and a hashed version of the agent's name
         name = str(whoami.role) + " " + hashlib.sha256(whoami.name.encode('utf-8')).hexdigest()[:10]
@@ -289,14 +281,15 @@ async def home_page(request: Request):
         logger.exception(f'Error while rendering home page: {str(e)}')
         return JSONResponse(content={'error': str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 if __name__ == '__main__':
     args = parse_args()
     host = args.host
     port = args.port
 
-    logger.info(f'Agent init : \n{whoami}')
+    logger.info(f'Initialization agent: \n{whoami} with manager_address: {manager_address} ')
 
     try:
         uvicorn.run("agent:app", host=host, port=port, reload=False)
     except Exception as e:
-        logger.exception(f'An exception occurred during the startup of the Unicorn server: {str(e)}')
+        logger.exception(f'Во время запуска сервера UVicorn произошло исключение: {str(e)}')

@@ -13,17 +13,27 @@ tasks_db = JsonDB(TASKS_DB_NAME)
 if __name__ == "__main__":
 
     manager_ran = False
+    manager_address = None
+    # Try to find manager in agents db
+    for agent in agents_db.get_all_records():
+        if agent['role'] == 'manager':
+            manager_address = agent['name']
+            break
+
+    # TODO IF WE DIDN'T FIND MANAGER NEED TO CREATE!!!!!!!
+
+
     # Execute agents from DataBase
     for agent in agents_db.get_all_records():
         hostname = agent['name']
         host, port = hostname.split(':')
         print(agent)
         try:
-            run_agent(host,port,agent['role'])
+            run_agent(host, port, agent['role'], manager_address=manager_address)
             manager_ran = (manager_ran or agent['role'] == 'manager')
         except Exception as e:
             print(f'Failed to run with {e}')
-        print(f'Successful run: {agent}')
+        print(f'Successful run: {agent} with address of manager: {manager_address}')
 
     if not manager_ran:
         manager = Agent(
@@ -35,4 +45,4 @@ if __name__ == "__main__":
 
         agents_db.add_record(manager)
         agents_db.save()
-        run_agent('127.0.0.1','8000','manager')
+        run_agent('127.0.0.1', '8000', 'manager', '')
