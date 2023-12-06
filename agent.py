@@ -60,6 +60,7 @@ whoami = Agent(name=f'{args.host}:{args.port}', role=args.role)
 
 @app.post("/workers/tasks/")
 async def worker_task(request: Request):
+    logger.info(whoami)
     if whoami.role != Role('worker'):
         logger.error('The manager cannot perform tasks, only control!')
         return JSONResponse(content={'error': 'Manager can\'t work, just control!'},
@@ -131,6 +132,7 @@ async def append_task(file: UploadFile):
     """
 
     # Prepare Task to put into queue
+    logger.info(whoami)
     task = Task(name=file.filename, file=file)
     tasks_db.add_record({'name': task.name})
     tasks_db.save()
@@ -186,6 +188,7 @@ async def append_task(file: UploadFile):
 
 @app.get("/manager/tasks/")
 async def tasks_list(request: Request):
+    logger.info(whoami)
     try:
         # Take all tasks
         tasks = tasks_db.get_all_records()
@@ -204,6 +207,7 @@ async def create_worker(request: Request):
     :param request:
     :return:
     """
+    logger.info(whoami)
     try:
         if whoami.role != Role('manager'):
             logger.error('Unacceptable. The manager cannot create workers.')
@@ -239,6 +243,7 @@ async def get_workers():
     Method to get list of all workers
     :return
     """
+    logger.info(whoami)
     try:
         # Method to get list of all workers
         workers = agents_db.get_all_records()
@@ -255,6 +260,7 @@ async def get_workers_none():
            Method who return list of workers whit state is None
            :return:
            """
+    logger.info(whoami)
     try:
         none_workers = agents_db.getNone()
         logger.info("The list of workers with the status None has been successfully received")
@@ -265,6 +271,7 @@ async def get_workers_none():
 
 @app.get('/')
 async def home_page(request: Request):
+    logger.info(whoami)
     try:
         # Generate a unique name using role and a hashed version of the agent's name
         name = str(whoami.role) + " " + hashlib.sha256(whoami.name.encode('utf-8')).hexdigest()[:10]
@@ -287,9 +294,9 @@ if __name__ == '__main__':
     host = args.host
     port = args.port
 
-    logger.info(f'Инициализация агента: \n{whoami}')
+    logger.info(f'Agent init : \n{whoami}')
 
     try:
         uvicorn.run("agent:app", host=host, port=port, reload=False)
     except Exception as e:
-        logger.exception(f'Во время запуска сервера UVicorn произошло исключение: {str(e)}')
+        logger.exception(f'An exception occurred during the startup of the Unicorn server: {str(e)}')
