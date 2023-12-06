@@ -1,7 +1,10 @@
+import hashlib
 import platform
 import socket
 import subprocess
 
+def hash_str(data:str):
+    return hashlib.sha256(data.encode('utf-8')).hexdigest()[:10]
 
 def run_agent(host: str, port: str, role='worker', manager_address=''):
     run_server_command = ''

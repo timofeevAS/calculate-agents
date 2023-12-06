@@ -1,5 +1,7 @@
 import argparse
 import os
+import time
+
 import aiohttp
 import asyncio
 import platform
@@ -13,7 +15,7 @@ from fastapi.responses import JSONResponse
 
 from jsondb import JsonDB
 from models import Agent, Task, State, Role
-from utils import find_free_port, run_agent
+from utils import find_free_port, run_agent, hash_str
 
 import subprocess
 
@@ -79,7 +81,7 @@ async def worker_task(request: Request):
         if not os.path.exists(log_directory):
             os.makedirs(log_directory)
 
-        log_file_path = os.path.join(log_directory, f'{task_name}_{whoami.name}.txt')
+        log_file_path = os.path.join(log_directory, f'{task_name}_{hash_str(whoami.name)}.txt')
 
         whoami.state = State('busy')
 
@@ -88,6 +90,8 @@ async def worker_task(request: Request):
         output = result.stdout
         error = result.stderr
         status_code = result.returncode
+
+        print(f'Result of processing: {result}')
 
         with open(log_file_path, 'w') as log_file:
             log_file.write(output)
@@ -131,7 +135,8 @@ async def append_task(file: UploadFile):
     """
 
     # Prepare Task to put into queue
-    task = Task(name=file.filename, file=file)
+    task_name = f'{file.filename.split(".")[0]}_{hash_str(str(time.time()))}.{file.filename.split(".")[1]}'
+    task = Task(name=task_name, file=file)
     tasks_db.add_record({'name': task.name})
     tasks_db.save()
     logger.info("The task was prepare to put into queue")
@@ -141,7 +146,7 @@ async def append_task(file: UploadFile):
     if not os.path.exists(save_directory):
         os.makedirs(save_directory)
 
-    file_path = os.path.join(save_directory, file.filename)
+    file_path = os.path.join(save_directory, task.name)
 
     try:
         with open(file_path, "wb") as file_dest:
@@ -202,6 +207,7 @@ async def create_worker(request: Request):
     :param request:
     :return:
     """
+
     try:
         if whoami.role != Role('manager'):
             logger.error('Unacceptable. The manager cannot create workers.')
