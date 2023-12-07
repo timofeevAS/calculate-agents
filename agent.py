@@ -286,6 +286,39 @@ async def home_page(request: Request):
         # Log any exceptions that may occur
         logger.exception(f'Error while rendering home page: {str(e)}')
         return JSONResponse(content={'error': str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+async def give_task():
+    free_workers = []
+
+    for agent in agents_db.get_all_records():
+        if agent['role'] == 'worker' and agent['state'] == 'ready':
+            # If agent worker and free we can prepare him to task
+            free_workers.append(agent)
+            logger.info(f'Worker {agent["name"]}: is ready to work!')
+
+    # Giving tasks for free_workers
+    tasks = tasks_db.get_all_records()
+    logger.info(f'All tasks: {tasks}')
+
+    # Use asyncio.gather to perform asynchronous requests to all workers
+    task_args = []
+
+    for index, worker in enumerate(free_workers):
+        if index >= len(tasks):
+            break  # Break if there are no more tasks
+        print(f"Giving task_{index} for worker {worker}")
+        logger.info(f"Giving task_{index} for worker {worker}")
+        task_args.append((worker, tasks[index]))
+
+    print(task_args)
+@app.post('/manager/tasks/')
+async def check_any_works(request: dict):
+    try:
+        manager_request = request.get("text", " ")
+        if "any work" in manager_request:
+            give_task()
+    except Exception as e:
+        logger.exception(f'The problem with retransmitting the task: {str(e)}')
+        return JSONResponse(content={'error': str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 if __name__ == '__main__':
