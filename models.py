@@ -43,6 +43,8 @@ class WorkerStateUpdate(BaseModel):
     state: str
     task_name:str
 
+class MessageInput(BaseModel):
+    message: str
 
 class Agent(BaseModel):
     """

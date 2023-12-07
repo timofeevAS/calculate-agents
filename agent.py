@@ -15,7 +15,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
 
 from jsondb import JsonDB
-from models import Agent, Task, State, Role, WorkerStateUpdate
+from models import *
 from utils import find_free_port, run_agent, hash_str
 
 import subprocess
@@ -27,6 +27,9 @@ from main import agents_db, tasks_db
 
 app = FastAPI()
 templates = Jinja2Templates(directory='templates')
+origins = [
+    "http://localhost"
+]
 
 # setting up logging
 log_formatter = logging.Formatter('%(asctime)s %(levelname)s %(funcName)s(%(lineno)d) %(message)s')
@@ -62,9 +65,9 @@ manager_address = args.manager_address
 
 @app.post("/workers/tasks/")
 async def worker_task(request: Request):
-    def update_worker_state(worker_name, new_state,task_name):
-        endpoint = f'http://{manager_address}/manager/worker_state'
-        payload = {'worker_name': worker_name, 'state': new_state, 'task_name':task_name}
+    def update_worker_state(worker_name, new_state, task_name):
+        endpoint = f'http://{manager_address}/manager/worker_state/'
+        payload = {'worker_name': worker_name, 'state': new_state, 'task_name': task_name}
         response = requests.patch(endpoint, json=payload)
 
         if response.status_code == 200:
@@ -87,7 +90,7 @@ async def worker_task(request: Request):
                             status_code=status.HTTP_400_BAD_REQUEST)
     file_path = os.path.join("task_sources", task_name)
 
-    update_worker_state(whoami.name, 'busy',task_name)
+    update_worker_state(whoami.name, 'busy', task_name)
     whoami.state = State('busy')
 
     try:
@@ -96,7 +99,6 @@ async def worker_task(request: Request):
             os.makedirs(log_directory)
 
         log_file_path = os.path.join(log_directory, f'{task_name}_{hash_str(whoami.name)}.txt')
-
 
         # Assuming file_path contains the path to the executable
         result = subprocess.run(['python', file_path], capture_output=True, text=True)
@@ -108,7 +110,6 @@ async def worker_task(request: Request):
 
         with open(log_file_path, 'w') as log_file:
             log_file.write(output)
-
 
         # TODO PUT REQUEST TO MANAGER TO REMOVE TASK
 
@@ -125,7 +126,7 @@ async def worker_task(request: Request):
         return JSONResponse(content={'error': str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     finally:
         whoami.state = State('ready')
-        update_worker_state(whoami.name, 'ready','')
+        update_worker_state(whoami.name, 'ready', task_name)
 
 
 async def give_task_to_worker(worker, task):
@@ -235,6 +236,7 @@ async def create_worker(request: Request):
 
         # Filling data in a new Worker
         free_port = find_free_port(8000, 8080)
+
         localhost = '127.0.0.1'
 
         worker = Agent(name=f"{localhost}:{free_port}", state=State('ready'), role=Role('worker'))
@@ -245,7 +247,7 @@ async def create_worker(request: Request):
             logger.error(f'Error when creating a new worker: {e}')
             return JSONResponse(content={'message': f'Error via creating a new worker {e}'},
                                 status_code=status.HTTP_400_BAD_REQUEST)
-        agents_db.add_record(worker.model_dump())  # Append new worker
+        agents_db.get_or_create(worker.model_dump())  # Append new worker
         agents_db.save()  # Saving the updated worker list
         logger.info(f'A new worker has been created and launched: {worker}')
 
@@ -288,38 +290,30 @@ async def get_workers_none():
 
 
 @app.patch('/manager/worker_state/')
-async def set_worker_state(request: Request,update_data:WorkerStateUpdate):
+async def set_worker_state(request: Request, update_data: WorkerStateUpdate):
     worker = None
     for agent in agents_db.get_all_records():
         if agent['name'] == update_data.worker_name:
             worker = agent
             agent['state'] = update_data.state
-            agent['task'] = update_data.task_name
+            if update_data.state != 'ready':
+                agent['task'] = update_data.task_name
+            else:
+                agent['task'] = ''
             agents_db.save()
             break
+
+    if update_data.state == 'ready' and update_data.task_name:
+        index = tasks_db.get_index({"name": update_data.task_name})
+        print(f'try to find {update_data.task_name} with index {index}')
+        tasks_db.remove_record(index)
+        tasks_db.save()
+        print(f'removed {update_data.task_name}!')
 
     return JSONResponse(content={'message': f'Worker: {worker["name"]}  changed state to: {update_data.state}'},
                         status_code=status.HTTP_200_OK)
 
 
-@app.get('/')
-async def home_page(request: Request):
-    try:
-        # Generate a unique name using role and a hashed version of the agent's name
-        name = str(whoami.role) + " " + hashlib.sha256(whoami.name.encode('utf-8')).hexdigest()[:10]
-
-        if whoami.role == Role('manager'):
-            # If the agent is a manager, render the manager.html template
-            logger.info("Rendering manager.html for the manager.")
-            return templates.TemplateResponse("manager.html", {"request": request, "name": name})
-        else:
-            # If the agent is not a manager, render the worker.html template
-            logger.info("Rendering worker.html for the worker.")
-            return templates.TemplateResponse("worker.html", {"request": request, "name": name})
-    except Exception as e:
-        # Log any exceptions that may occur
-        logger.exception(f'Error while rendering home page: {str(e)}')
-        return JSONResponse(content={'error': str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 async def give_task():
     free_workers = []
 
@@ -343,15 +337,39 @@ async def give_task():
         logger.info(f"Giving task_{index} for worker {worker}")
         task_args.append((worker, tasks[index]))
 
-    print(task_args)
-@app.post('/manager/tasks/')
-async def check_any_works(request: dict):
+    tasks = [asyncio.create_task(give_task_to_worker(*args)) for args in task_args]
+
+    return len(task_args)
+
+
+@app.post('/manager/message/')
+async def check_any_works(request: Request, input: MessageInput):
     try:
-        manager_request = request.get("text", " ")
-        if "any work" in manager_request:
-            give_task()
+        if input.message == 'any work':
+            num = give_task()
+        return JSONResponse(content={'message': f'Running {await num} tasks'}, status_code=status.HTTP_200_OK)
     except Exception as e:
         logger.exception(f'The problem with retransmitting the task: {str(e)}')
+        return JSONResponse(content={'error': str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@app.get('/')
+async def home_page(request: Request):
+    try:
+        # Generate a unique name using role and a hashed version of the agent's name
+        name = str(whoami.role) + " " + hashlib.sha256(whoami.name.encode('utf-8')).hexdigest()[:10]
+
+        if whoami.role == Role('manager'):
+            # If the agent is a manager, render the manager.html template
+            logger.info("Rendering manager.html for the manager.")
+            return templates.TemplateResponse("manager.html", {"request": request, "name": name})
+        else:
+            # If the agent is not a manager, render the worker.html template
+            logger.info("Rendering worker.html for the worker.")
+            return templates.TemplateResponse("worker.html", {"request": request, "name": name})
+    except Exception as e:
+        # Log any exceptions that may occur
+        logger.exception(f'Error while rendering home page: {str(e)}')
         return JSONResponse(content={'error': str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 

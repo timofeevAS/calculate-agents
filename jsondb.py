@@ -44,6 +44,7 @@ class JsonDB:
         This method adds the specified record to the `self.data` list.
         :param record: The record to add
         """
+
         self.data.append(dict(record))
 
     def get_record(self, index):
@@ -85,7 +86,18 @@ class JsonDB:
         """
         # Check if the index is valid
         if 0 <= index < len(self.data):
-            del self.data[index]
+            self.data.pop(index)
+
+    def get_index(self,obj):
+        """
+        Method to find index
+        :return:
+        """
+        for index, some in enumerate(self.data):
+            if obj == some:
+                return index
+        return -1
+
 
     # change ekalugin
     def getNone(self):
