@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
 </head>
 <body>
     <h1>{{ name }} is welcoming you!</h1>
@@ -14,23 +15,21 @@
     <form id="addWorkerForm">
         <button type="button" onclick="addWorker()">Add Worker</button>
     </form>
-     <form method="post" action="/manager/tasks/" enctype="multipart/form-data">
-        <label for="file">Select a file:</label>
-        <input type="file" id="file" name="file" accept=".py">
-        <button type="submit">Upload Task</button>
+     <form id="uploadForm" method="post" action="/manager/tasks/" enctype="multipart/form-data">
+    <label for="file">Select a file:</label>
+    <input type="file" id="file" name="file" accept=".py">
+    <button type="button" onclick="uploadTask()">Upload Task</button>
     </form>
-    <form id="clearWorkersForm">
-        <button type="button" onclick="clearWorkersList()">Clear Workers List</button>
-    </form>
-    <ul id="tasksQueue">
+    <h2>List of Tasks</h2>
+    <ul id="tasksList">
         <!-- Queue of tasks here -->
     </ul>
 
     <script>
 
-        const API_URL = 'http://127.0.0.1:8000/manager/workers/'
+        const API_URL = 'http://127.0.0.1:8000'
         function updateWorkersList() {
-            fetch(API_URL)
+            fetch(`${API_URL}/manager/workers/`)
                 .then(response => response.json())
                 .then(data => {
                     const workersListElement = document.getElementById('workersList');
@@ -46,8 +45,31 @@
                 .catch(error => console.error('Error updating workers list:', error));
         }
 
+        function updateTasksList() {
+            fetch(`${API_URL}/manager/tasks/`)
+                .then(response => response.json())
+                .then(data => {
+                    const taskListElement = document.getElementById('tasksList');
+                    taskListElement.innerHTML = '';
+
+
+                    data.forEach(task => {
+                        const listItem = document.createElement('li');
+                        listItem.textContent = `${task}`;
+                        taskListElement.appendChild(listItem);
+                    });
+
+                    if(data.length === 0){
+                        const listItem = document.createElement('span');
+                        listItem.textContent = `Nothing`;
+                        taskListElement.appendChild(listItem);
+                    }
+                })
+                .catch(error => console.error('Error updating task list:', error));
+        }
+
         function addWorker() {
-            fetch(API_URL, { method: 'POST' })
+            fetch(`${API_URL}/manager/workers/`, { method: 'POST' })
                 .then(response => response.json())
                 .then(data => {
                     console.log('Created new worker:', data);
@@ -56,11 +78,28 @@
                 .catch(error => console.error('Error adding worker:', error));
         }
 
+        function uploadTask() {
+        var formData = new FormData($('#uploadForm')[0]);
+
+        $.ajax({
+            url: '/manager/tasks/',
+            type: 'POST',
+            data: formData,
+            cache: false,
+            contentType: false,
+            processData: false,
+            success: function(response) {
+                console.log('Upload successful:', response);
+                location.reload();
+            },
+            error: function(error) {
+                console.error('Upload error:', error);
+            }
+        });
+    }
+
         document.addEventListener('DOMContentLoaded', updateWorkersList);
-        function clearWorkersList() {
-            const workersListElement = document.getElementById('workersList');
-            workersListElement.innerHTML = ''; // Очистить содержимое списка
-        }
+        document.addEventListener('DOMContentLoaded', updateTasksList);
     </script>
 
 </body>
