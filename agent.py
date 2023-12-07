@@ -129,12 +129,17 @@ async def worker_task(request: Request):
         update_worker_state(whoami.name, 'ready', task_name)
 
 
-async def give_task_to_worker(worker, task):
+async def give_task_to_worker(worker: dict, task: dict):
     payload = {'task_name': task['name']}
 
     async with aiohttp.ClientSession() as session:
         worker_url = f"http://{worker['name']}/workers/tasks/"
         try:
+            index = tasks_db.get_index({"name": task['name']})
+            print(f'try to find {task["name"]} with index {index}')
+            tasks_db.remove_record(index)
+            tasks_db.save()
+
             async with session.post(worker_url, json=payload) as response:
                 result = await response.json()
                 logger.info(f"Task given to worker {worker['name']}, response: {result}")
@@ -274,21 +279,6 @@ async def get_workers():
         return JSONResponse(content={'error': str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@app.post("/workersIsNone/")
-async def get_workers_none():
-    """
-           Method who return list of workers whit state is None
-           :return:
-           """
-    try:
-        none_workers = agents_db.getNone()
-        logger.info("The list of workers with the status None has been successfully received")
-        return none_workers
-    except Exception as e:
-        logger.exception(f'Error when getting a list of workers with the status None: {str(e)}')
-        return JSONResponse(content={'error': str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
 @app.patch('/manager/worker_state/')
 async def set_worker_state(request: Request, update_data: WorkerStateUpdate):
     worker = None
@@ -303,12 +293,30 @@ async def set_worker_state(request: Request, update_data: WorkerStateUpdate):
             agents_db.save()
             break
 
-    if update_data.state == 'ready' and update_data.task_name:
-        index = tasks_db.get_index({"name": update_data.task_name})
-        print(f'try to find {update_data.task_name} with index {index}')
-        tasks_db.remove_record(index)
-        tasks_db.save()
-        print(f'removed {update_data.task_name}!')
+    # If worker ready, and we have tasks we need to give one more for him
+    tasks = list(tasks_db.get_all_records())
+    if update_data.state == 'ready' and len(tasks):
+        print(f'Worker {worker} is free try give a task!')
+        task_to_complete = None
+        for task in tasks_db.get_all_records():
+            correct = True
+            for agent in agents_db.get_all_records():
+                if agent['task'] == task['name']:
+                    correct = False
+                    break
+            if correct:
+                task_to_complete = task
+                break
+
+        print(f'Try to give task ({task_to_complete}) for {update_data.worker_name}')
+        asyncio.create_task(
+            give_task_to_worker(
+                worker,
+                task_to_complete
+            )
+        )
+        return JSONResponse(content={'message': f'Worker: {worker["name"]}  go processing: {tasks[0]}'},
+                            status_code=status.HTTP_200_OK)
 
     return JSONResponse(content={'message': f'Worker: {worker["name"]}  changed state to: {update_data.state}'},
                         status_code=status.HTTP_200_OK)
