@@ -5,6 +5,63 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+        <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        h2 {
+            color: #666;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            margin-bottom: 10px;
+        }
+
+        form {
+            margin-top: 10px;
+        }
+
+        button {
+            padding: 8px 16px;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        input[type="file"] {
+            margin-right: 10px;
+        }
+
+
+            input[type="file"].custom-file-input {
+            display: none; /* Скрыть стандартный элемент выбора файла */
+        }
+
+        label.custom-file-label {
+            padding: 8px 16px;
+            background-color: #4caf50;
+            color: white;
+            cursor: pointer;
+        }
+
+        label.custom-file-label:hover {
+            background-color: #45a049;
+        }
+    </style>
 </head>
 <body>
     <h1>{{ name }} is welcoming you!</h1>
@@ -16,9 +73,9 @@
         <button type="button" onclick="addWorker()">Add Worker</button>
     </form>
      <form id="uploadForm" method="post" action="/manager/tasks/" enctype="multipart/form-data">
-    <label for="file">Select a file:</label>
-    <input type="file" id="file" name="file" accept=".py">
-    <button type="button" onclick="uploadTask()">Upload Task</button>
+    <label for="file" class="custom-file-label">Select a file:</label>
+        <input type="file" id="file" name="file" accept=".py" class="custom-file-input">
+        <button type="button" onclick="uploadTask()">Upload Task</button>
     </form>
     <h2>List of Tasks</h2>
     <ul id="tasksList">
@@ -52,6 +109,10 @@
                     const taskListElement = document.getElementById('tasksList');
                     taskListElement.innerHTML = '';
 
+                    const listItemTitle = document.createElement('span');
+                    listItemTitle.textContent = (data.length > 0) ? data.length : `Nothing`;
+                    taskListElement.appendChild(listItemTitle);
+
 
                     data.forEach(task => {
                         const listItem = document.createElement('li');
@@ -59,11 +120,7 @@
                         taskListElement.appendChild(listItem);
                     });
 
-                    if(data.length === 0){
-                        const listItem = document.createElement('span');
-                        listItem.textContent = `Nothing`;
-                        taskListElement.appendChild(listItem);
-                    }
+
                 })
                 .catch(error => console.error('Error updating task list:', error));
         }
