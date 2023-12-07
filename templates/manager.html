@@ -39,7 +39,7 @@
 
                     data.forEach(worker => {
                         const listItem = document.createElement('li');
-                        listItem.textContent = `${worker.role}: ${worker.name} -> ${worker.state} -> ${worker.task ? worker.task.name : 'No task'}`;
+                        listItem.textContent = `${worker.role}: ${worker.name} -> ${worker.state} -> ${worker.task ? worker.task : 'No task'}`;
                         workersListElement.appendChild(listItem);
                     });
                 })

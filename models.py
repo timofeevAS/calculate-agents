@@ -38,6 +38,12 @@ class Task(BaseModel):
         return self.name
 
 
+class WorkerStateUpdate(BaseModel):
+    worker_name: str
+    state: str
+    task_name:str
+
+
 class Agent(BaseModel):
     """
     Model for Agent
