@@ -5,6 +5,7 @@ import time
 import aiohttp
 import asyncio
 import platform
+import requests
 
 import hashlib
 
@@ -14,7 +15,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
 
 from jsondb import JsonDB
-from models import Agent, Task, State, Role
+from models import Agent, Task, State, Role, WorkerStateUpdate
 from utils import find_free_port, run_agent, hash_str
 
 import subprocess
@@ -61,12 +62,22 @@ manager_address = args.manager_address
 
 @app.post("/workers/tasks/")
 async def worker_task(request: Request):
-    logger.info(whoami)
+    def update_worker_state(worker_name, new_state,task_name):
+        endpoint = f'http://{manager_address}/manager/worker_state'
+        payload = {'worker_name': worker_name, 'state': new_state, 'task_name':task_name}
+        response = requests.patch(endpoint, json=payload)
+
+        if response.status_code == 200:
+            print(f"Worker state updated to {new_state}")
+        else:
+            print(f"Failed to update worker state. Status code: {response.status_code}")
+
     if whoami.role != Role('worker'):
         logger.error('The manager cannot perform tasks, only control!')
         return JSONResponse(content={'error': 'Manager can\'t work, just control!'},
                             status_code=status.HTTP_400_BAD_REQUEST)
 
+    # Get data about task
     data = await request.json()
     task_name = data.get("task_name", None)
 
@@ -76,6 +87,9 @@ async def worker_task(request: Request):
                             status_code=status.HTTP_400_BAD_REQUEST)
     file_path = os.path.join("task_sources", task_name)
 
+    update_worker_state(whoami.name, 'busy',task_name)
+    whoami.state = State('busy')
+
     try:
         log_directory = 'tasks_log'
         if not os.path.exists(log_directory):
@@ -83,7 +97,6 @@ async def worker_task(request: Request):
 
         log_file_path = os.path.join(log_directory, f'{task_name}_{hash_str(whoami.name)}.txt')
 
-        whoami.state = State('busy')
 
         # Assuming file_path contains the path to the executable
         result = subprocess.run(['python', file_path], capture_output=True, text=True)
@@ -96,7 +109,8 @@ async def worker_task(request: Request):
         with open(log_file_path, 'w') as log_file:
             log_file.write(output)
 
-        whoami.state = State('ready')
+
+        # TODO PUT REQUEST TO MANAGER TO REMOVE TASK
 
         if status_code == 0:
             response_data = {'output': output, 'log_file_path': log_file_path}
@@ -109,6 +123,9 @@ async def worker_task(request: Request):
     except Exception as e:
         logger.exception(f'An exception has occurred: {str(e)}')
         return JSONResponse(content={'error': str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    finally:
+        whoami.state = State('ready')
+        update_worker_state(whoami.name, 'ready','')
 
 
 async def give_task_to_worker(worker, task):
@@ -180,7 +197,9 @@ async def append_task(file: UploadFile):
 
     print(task_args)
 
-    await asyncio.gather(*(give_task_to_worker(*args) for args in task_args))
+    # await asyncio.gather(*(give_task_to_worker(*args) for args in task_args))
+
+    tasks = [asyncio.create_task(give_task_to_worker(*args)) for args in task_args]
 
     return JSONResponse(content={"message": f"{task.name} added into queue."},
                         status_code=status.HTTP_201_CREATED)
@@ -268,6 +287,21 @@ async def get_workers_none():
         return JSONResponse(content={'error': str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+@app.patch('/manager/worker_state/')
+async def set_worker_state(request: Request,update_data:WorkerStateUpdate):
+    worker = None
+    for agent in agents_db.get_all_records():
+        if agent['name'] == update_data.worker_name:
+            worker = agent
+            agent['state'] = update_data.state
+            agent['task'] = update_data.task_name
+            agents_db.save()
+            break
+
+    return JSONResponse(content={'message': f'Worker: {worker["name"]}  changed state to: {update_data.state}'},
+                        status_code=status.HTTP_200_OK)
+
+
 @app.get('/')
 async def home_page(request: Request):
     try:
@@ -294,7 +328,7 @@ if __name__ == '__main__':
     port = args.port
 
     logger.info(f'Initialization agent: \n{whoami} with manager_address: {manager_address} ')
-
+    print(f'Init {whoami}')
     try:
         uvicorn.run("agent:app", host=host, port=port, reload=False)
     except Exception as e:
