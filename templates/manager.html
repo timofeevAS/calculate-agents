@@ -1,0 +1,185 @@
+<!-- templates/manager.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+        <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        h2 {
+            color: #666;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            margin-bottom: 10px;
+        }
+
+        form {
+            margin-top: 10px;
+        }
+
+
+        button {
+            padding: 8px 16px;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin:6px;
+        }
+
+        button:hover{
+            background-color: #45a049;
+        }
+
+        input[type="file"] {
+            margin-right: 10px;
+        }
+
+
+            input[type="file"].custom-file-input {
+
+        }
+
+        label.custom-file-label {
+            padding: 8px 16px;
+            background-color: darkgreen;
+            color: white;
+            cursor: pointer;
+        }
+
+        label.custom-file-label:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>{{ name }} is welcoming you!</h1>
+    <h2>List of Workers</h2>
+    <ul id="workersList">
+    <!-- List of workers here -->
+    </ul>
+    <form id="addWorkerForm">
+        <button type="button" onclick="addWorker()">Add Worker</button>
+    </form>
+     <div style="padding: 8px 16px;
+            background-color: orange;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin:6px;
+            width:70px" href="/results"> <a id="results" type="button" href="/results">Results</a></div>
+     <form id="uploadForm" method="post" action="/manager/tasks/" enctype="multipart/form-data">
+        <input type="file" id="file" name="file" accept=".py">
+        <button type="button" onclick="uploadTask()">Upload Task</button>
+    </form>
+    <h2>List of Tasks</h2>
+    <ul id="tasksList">
+        <!-- Queue of tasks here -->
+    </ul>
+
+
+    <script>
+
+        const API_URL = 'http://127.0.0.1:8000'
+       function updateWorkersList() {
+            fetch(`${API_URL}/manager/workers/`)
+                .then(response => response.json())
+                .then(data => {
+                    const workersListElement = document.getElementById('workersList');
+                    workersListElement.innerHTML = '';
+
+                    data.forEach(worker => {
+                        const listItem = document.createElement('li');
+
+                        const workerLink = document.createElement('a');
+                        workerLink.href = `http://${worker.name}/`;
+                        workerLink.textContent = `${worker.role}: ${worker.name} -> ${worker.state} -> ${worker.task ? worker.task : 'No task'}`;
+
+                        listItem.appendChild(workerLink);
+
+                        workersListElement.appendChild(listItem);
+                    });
+                })
+                .catch(error => console.error('Error updating workers list:', error));
+        }
+
+        function updateTasksList() {
+            fetch(`${API_URL}/manager/tasks/`)
+                .then(response => response.json())
+                .then(data => {
+                    const taskListElement = document.getElementById('tasksList');
+                    taskListElement.innerHTML = '';
+
+                    const listItemTitle = document.createElement('span');
+                    const boldText = document.createElement('b');
+
+
+                    listItemTitle.textContent = (data.length > 0) ? `${data.length} tasks now:` : `Nothing`;
+                    taskListElement.appendChild(boldText);
+                    boldText.appendChild(listItemTitle);
+
+
+                    data.forEach(task => {
+                        const listItem = document.createElement('li');
+                        listItem.textContent = `${task}`;
+                        taskListElement.appendChild(listItem);
+                    });
+
+
+                })
+                .catch(error => console.error('Error updating task list:', error));
+        }
+
+        function addWorker() {
+            fetch(`${API_URL}/manager/workers/`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Created new worker:', data);
+                    updateWorkersList();
+                })
+                .catch(error => console.error('Error adding worker:', error));
+        }
+
+        function uploadTask() {
+        var formData = new FormData($('#uploadForm')[0]);
+
+        $.ajax({
+            url: '/manager/tasks/',
+            type: 'POST',
+            data: formData,
+            cache: false,
+            contentType: false,
+            processData: false,
+            success: function(response) {
+                console.log('Upload successful:', response);
+                location.reload();
+            },
+            error: function(error) {
+                console.error('Upload error:', error);
+            }
+        });
+    }
+
+        document.addEventListener('DOMContentLoaded', updateWorkersList);
+        document.addEventListener('DOMContentLoaded', updateTasksList);
+    </script>
+
+</body>
+</html>

@@ -2,6 +2,17 @@
 __pycache__/
 *.py[cod]
 *$py.class
+.venv/
+.idea/
+
+# Agents json
+agents.json
+tasks.json
+
+
+# Some media files
+/tasks_log
+/task_sources
 
 # C extensions
 *.so
