@@ -10,9 +10,10 @@ import requests
 import hashlib
 
 import uvicorn
-from fastapi import FastAPI, Request, status, UploadFile, HTTPException
+from fastapi import FastAPI, Request, status, UploadFile, HTTPException,BackgroundTasks
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from starlette.staticfiles import StaticFiles
 
 from jsondb import JsonDB
 from models import *
@@ -31,6 +32,9 @@ origins = [
     "http://localhost"
 ]
 
+app.mount("/static", StaticFiles(directory="templates/static"), name="static")
+
+
 # setting up logging
 log_formatter = logging.Formatter('%(asctime)s %(levelname)s %(funcName)s(%(lineno)d) %(message)s')
 log_handler = RotatingFileHandler('app.log', maxBytes=100000, backupCount=3)
@@ -39,6 +43,7 @@ log_handler.setFormatter(log_formatter)
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 logger.addHandler(log_handler)
+
 
 
 def parse_args():
@@ -110,8 +115,6 @@ async def worker_task(request: Request):
 
         with open(log_file_path, 'w') as log_file:
             log_file.write(output)
-
-        # TODO PUT REQUEST TO MANAGER TO REMOVE TASK
 
         if status_code == 0:
             response_data = {'output': output, 'log_file_path': log_file_path}
@@ -252,9 +255,11 @@ async def create_worker(request: Request):
             logger.error(f'Error when creating a new worker: {e}')
             return JSONResponse(content={'message': f'Error via creating a new worker {e}'},
                                 status_code=status.HTTP_400_BAD_REQUEST)
+
         agents_db.get_or_create(worker.model_dump())  # Append new worker
         agents_db.save()  # Saving the updated worker list
         logger.info(f'A new worker has been created and launched: {worker}')
+
 
         return JSONResponse(content={'message': f'Created and run a new worker {worker}'},
                             status_code=status.HTTP_201_CREATED)
@@ -318,6 +323,12 @@ async def set_worker_state(request: Request, update_data: WorkerStateUpdate):
         return JSONResponse(content={'message': f'Worker: {worker["name"]}  go processing: {tasks[0]}'},
                             status_code=status.HTTP_200_OK)
 
+    # If agent can continue working
+    if len(tasks_db.get_all_records()) and update_data.state == 'ready':
+        print('Still working bro')
+        return JSONResponse(content={'message': f'Worker {worker}: go still working '},
+                            status_code=status.HTTP_200_OK)
+
     return JSONResponse(content={'message': f'Worker: {worker["name"]}  changed state to: {update_data.state}'},
                         status_code=status.HTTP_200_OK)
 
@@ -333,6 +344,7 @@ async def give_task():
 
     # Giving tasks for free_workers
     tasks = tasks_db.get_all_records()
+    print(f'Checking queue for tasks and free agents: {len(free_workers)} workers for {len(tasks)} tasks')
     logger.info(f'All tasks: {tasks}')
 
     # Use asyncio.gather to perform asynchronous requests to all workers
@@ -361,14 +373,52 @@ async def check_any_works(request: Request, input: MessageInput):
         return JSONResponse(content={'error': str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+async def check_tasks(background_tasks: BackgroundTasks):
+    print('Starting inf loop (daemon)')
+    while True:
+        await give_task()
+        await asyncio.sleep(5)
+
+@app.get("/download/{file_name}")
+async def download_file(file_name: str):
+    log_directory = 'tasks_log'
+    file_path = os.path.join(log_directory, file_name)
+
+    return FileResponse(file_path, media_type="application/octet-stream", filename=file_name)
+@app.get('/manager/results/')
+async def get_results():
+    log_directory = 'tasks_log'
+    if not os.path.exists(log_directory):
+        os.makedirs(log_directory)
+
+
+    files = os.listdir(log_directory)
+
+    results = []
+
+    for file_name in files:
+        file_path = os.path.join(log_directory, file_name)
+        results.append({'file_name': file_name,'path':file_path })
+
+    return JSONResponse(content=results,status_code=status.HTTP_200_OK)
+
+@app.get('/results')
+async def results_page(request: Request):
+    if whoami.role != Role('manager'):
+        return HTTPException(status_code=404)
+
+    return templates.TemplateResponse('results.html',{"request": request, "name": whoami.name})
 @app.get('/')
-async def home_page(request: Request):
+async def home_page(request: Request,background_tasks:BackgroundTasks):
+
     try:
         # Generate a unique name using role and a hashed version of the agent's name
         name = str(whoami.role) + " " + hashlib.sha256(whoami.name.encode('utf-8')).hexdigest()[:10]
 
         if whoami.role == Role('manager'):
             # If the agent is a manager, render the manager.html template
+            # If role manager try to give_tasks
+
             logger.info("Rendering manager.html for the manager.")
             return templates.TemplateResponse("manager.html", {"request": request, "name": name})
         else:

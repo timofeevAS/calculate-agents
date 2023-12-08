@@ -20,8 +20,15 @@ if __name__ == "__main__":
             manager_address = agent['name']
             break
 
-    # TODO IF WE DIDN'T FIND MANAGER NEED TO CREATE!!!!!!!
-
+    if not manager_address:
+        manager = Agent(
+            name='127.0.0.1:8000',
+            role=Role('manager'),
+            state=State('ready'),
+            task=None
+        )
+        agents_db.add_record(manager)
+        agents_db.save()
 
     # Execute agents from DataBase
     for agent in agents_db.get_all_records():
@@ -34,15 +41,3 @@ if __name__ == "__main__":
         except Exception as e:
             print(f'Failed to run with {e}')
         print(f'Successful run: {agent} with address of manager: {manager_address}')
-
-    if not manager_ran:
-        manager = Agent(
-            name='127.0.0.1:8000',
-            role=Role('manager'),
-            state=State('ready'),
-            task=None
-        )
-
-        agents_db.add_record(manager)
-        agents_db.save()
-        run_agent('127.0.0.1', '8000', 'manager', '')

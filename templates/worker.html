@@ -4,9 +4,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        h2 {
+            color: #666;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            margin-bottom: 10px;
+        }
+
+        form {
+            margin-top: 10px;
+        }
+
+        button {
+            padding: 8px 16px;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover{
+            background-color: #45a049;
+        }
+
+        input[type="file"] {
+            margin-right: 10px;
+        }
+
+
+            input[type="file"].custom-file-input {
+            display: none; /* Скрыть стандартный элемент выбора файла */
+        }
+
+        label.custom-file-label {
+            padding: 8px 16px;
+            background-color: darkgreen;
+            color: white;
+            cursor: pointer;
+        }
+
+        label.custom-file-label:hover {
+            background-color: #45a049;
+        }
+    </style>
+        <script>
+        const getRandomImage = () => {
+            const imageContainer = document.getElementById('randomImageContainer');
+
+            const imageFiles = ['worker1.jfif', 'worker2.jfif', 'worker3.jfif','worker4.jfif','worker5.jfif'];  // Замените на реальные имена файлов
+
+            const randomImage = imageFiles[Math.floor(Math.random() * imageFiles.length)];
+
+            const imgElement = document.createElement('img');
+            imgElement.src = `static/images/${randomImage}`;
+            imgElement.alt = 'Random Image';
+
+
+            imageContainer.innerHTML = '';
+            imageContainer.appendChild(imgElement);
+        };
+    </script>
 </head>
 <body>
     <h1>{{ name }} is welcoming you!</h1>
+    <div id="randomImageContainer"></div>
+
+    <!-- Вызов функции для загрузки случайной картинки -->
+    <script>
+        getRandomImage();
+    </script>
 
 </body>
 </html>
