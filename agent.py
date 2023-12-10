@@ -407,7 +407,9 @@ async def results_page(request: Request):
     if whoami.role != Role('manager'):
         return HTTPException(status_code=404)
 
-    return templates.TemplateResponse('results.html',{"request": request, "name": whoami.name})
+    files_list = parse_directory("tasks_log")
+    print('files_list')
+    return templates.TemplateResponse('results.html',{"request": request, "files_list":files_list,  "name": whoami.name})
 @app.get('/')
 async def home_page(request: Request,background_tasks:BackgroundTasks):
 
@@ -416,10 +418,11 @@ async def home_page(request: Request,background_tasks:BackgroundTasks):
         name = str(whoami.role) + " " + hashlib.sha256(whoami.name.encode('utf-8')).hexdigest()[:10]
 
         if whoami.role == Role('manager'):
-            # If the agent is a manager, render the manager.html template
+            # If the agent is a manager, render the 1manager.html template
             # If role manager try to give_tasks
 
             logger.info("Rendering manager.html for the manager.")
+#            return templates.TemplateResponse("1manager.html", {"request": request, "name": name})
             return templates.TemplateResponse("manager.html", {"request": request, "name": name})
         else:
             # If the agent is not a manager, render the worker.html template
@@ -429,9 +432,20 @@ async def home_page(request: Request,background_tasks:BackgroundTasks):
         # Log any exceptions that may occur
         logger.exception(f'Error while rendering home page: {str(e)}')
         return JSONResponse(content={'error': str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+def parse_directory(directory_path):
+        file_names = []
+
+        if os.path.exists(directory_path) and os.path.isdir(directory_path):
+            files = os.listdir(directory_path)
+            for file in files:
+                file_names.append(file)
+
+        return file_names
+
 
 
 if __name__ == '__main__':
+
     args = parse_args()
     host = args.host
     port = args.port
