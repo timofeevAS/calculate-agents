@@ -1,185 +1,385 @@
-<!-- templates/manager.html -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!doctype html>
+<html class="no-js" lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <title>Bigtech - ICO & Crypto Landing Page Template</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+		<link rel="shortcut icon" type="image/x-icon" href="static/assets/img/favicon.png">
+        <!-- Place favicon.ico in the root directory -->
+
+        <!-- CSS here -->
+        <link rel="stylesheet" href="static/assets/css/bootstrap.min.css">
+        <link rel="stylesheet" href="static/assets/css/animate.min.css">
+        <link rel="stylesheet" href="static/assets/css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="static/assets/css/mCustomScrollbar.min.css">
+        <link rel="stylesheet" href="static/assets/css/odometer.css">
+        <link rel="stylesheet" href="static/assets/css/slick.css">
+        <link rel="stylesheet" href="static/assets/css/default.css">
+        <link rel="stylesheet" href="static/assets/css/style.css">
+        <link rel="stylesheet" href="static/assets/css/responsive.css">
+  
+
     <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
-        <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f0f0f0;
-            margin: 0;
-            padding: 0;
-        }
 
-        h1 {
-            color: #333;
-        }
+    </head>
+    <body class="home-01">
 
-        h2 {
-            color: #666;
-        }
+        <!-- Preloader -->
+        <div id="preloader">
+            <div class="spinner">
+                <div class="rect1"></div>
+                <div class="rect2"></div>
+                <div class="rect3"></div>
+                <div class="rect4"></div>
+                <div class="rect5"></div>
+            </div>
+        </div>
+        <!-- Preloader -->
 
-        ul {
-            list-style-type: none;
-            padding: 0;
-        }
-
-        li {
-            margin-bottom: 10px;
-        }
-
-        form {
-            margin-top: 10px;
-        }
+      
 
 
-        button {
-            padding: 8px 16px;
-            background-color: #4caf50;
-            color: white;
-            border: none;
-            cursor: pointer;
-            margin:6px;
-        }
+        <!-- main-area -->
+        <main class="fix">
 
-        button:hover{
-            background-color: #45a049;
-        }
-
-        input[type="file"] {
-            margin-right: 10px;
-        }
-
-
-            input[type="file"].custom-file-input {
-
-        }
-
-        label.custom-file-label {
-            padding: 8px 16px;
-            background-color: darkgreen;
-            color: white;
-            cursor: pointer;
-        }
-
-        label.custom-file-label:hover {
-            background-color: #45a049;
-        }
-    </style>
-</head>
-<body>
-    <h1>{{ name }} is welcoming you!</h1>
-    <h2>List of Workers</h2>
-    <ul id="workersList">
-    <!-- List of workers here -->
-    </ul>
-    <form id="addWorkerForm">
-        <button type="button" onclick="addWorker()">Add Worker</button>
-    </form>
-     <div style="padding: 8px 16px;
-            background-color: orange;
-            color: white;
-            border: none;
-            cursor: pointer;
-            margin:6px;
-            width:70px" href="/results"> <a id="results" type="button" href="/results">Results</a></div>
-     <form id="uploadForm" method="post" action="/manager/tasks/" enctype="multipart/form-data">
-        <input type="file" id="file" name="file" accept=".py">
-        <button type="button" onclick="uploadTask()">Upload Task</button>
-    </form>
-    <h2>List of Tasks</h2>
-    <ul id="tasksList">
-        <!-- Queue of tasks here -->
-    </ul>
+            <!-- banner-area -->
+            <section class="banner-area banner-bg">
+                <div class="banner-shape-wrap">
+                    <img src="static/assets/img/banner/banner_shape01.png" alt="" class="img-one">
+                    <img src="static/assets/img/banner/banner_shape02.png" alt="" class="img-two">
+                    <img src="static/assets/img/banner/banner_shape03.png" alt="" class="img-three">
+                </div>
+                <div class="container">
+                    <div class="row justify-content-center">
+                        <div class="col-lg-10">
+                            <div class="banner-content text-center">
+                                <img src="static/assets/img/icon/fire.png" alt="">
+                                <h2 class="title">{{ name }} is  <span>welcoming</span> you! </h2>
+                            </div>
+                           <!--  <div class="banner-progress-wrap">
+                                <ul>
+                                    <li>Pre Sell</li>
+                                    <li>Soft Cap</li>
+                                    <li>Bonus</li>
+                                </ul>
+                                <div class="progress">
+                                    <div class="progress-bar" role="progressbar" style="width: 75%;" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <h4 class="title">65% target raised <span>1 ETH = $1000 = 3177.38 CIC</span></h4>
+                            </div> -->
+                        </div>
+                    </div>
 
 
-    <script>
+                    <div class="row justify-content-center">
+                        <div class="col-xl-10">
+                            <div class="banner-countdown-wrap text-center">
+                                <!-- <h2 class="title">ICO Will Start In..</h2> -->
+                                <a ><button class="btn" type="button" onclick="addWorker()">Add Worker</button></a>
+                                <a href="/results" class="btn">Results</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <!-- banner-area-end -->
 
-        const API_URL = 'http://127.0.0.1:8000'
-       function updateWorkersList() {
-            fetch(`${API_URL}/manager/workers/`)
-                .then(response => response.json())
-                .then(data => {
-                    const workersListElement = document.getElementById('workersList');
-                    workersListElement.innerHTML = '';
-
-                    data.forEach(worker => {
-                        const listItem = document.createElement('li');
-
-                        const workerLink = document.createElement('a');
-                        workerLink.href = `http://${worker.name}/`;
-                        workerLink.textContent = `${worker.role}: ${worker.name} -> ${worker.state} -> ${worker.task ? worker.task : 'No task'}`;
-
-                        listItem.appendChild(workerLink);
-
-                        workersListElement.appendChild(listItem);
-                    });
-                })
-                .catch(error => console.error('Error updating workers list:', error));
-        }
-
-        function updateTasksList() {
-            fetch(`${API_URL}/manager/tasks/`)
-                .then(response => response.json())
-                .then(data => {
-                    const taskListElement = document.getElementById('tasksList');
-                    taskListElement.innerHTML = '';
-
-                    const listItemTitle = document.createElement('span');
-                    const boldText = document.createElement('b');
+<br><br><br><br><br><br>
 
 
-                    listItemTitle.textContent = (data.length > 0) ? `${data.length} tasks now:` : `Nothing`;
-                    taskListElement.appendChild(boldText);
-                    boldText.appendChild(listItemTitle);
+            <!-- newsletter-area -->
+            <section class="newsletter-area">
+                <div class="container custom-container-four">
+                    <div class="row">
+                        <div class="col-lg-12">
+                            <div class="newsletter-wrap">
+                                <div class="newsletter-content">
+                                    <h2 class="title">Upload Task</h2>
+                                </div>
+                                <div class="newsletter-form">
+                                
 
 
-                    data.forEach(task => {
-                        const listItem = document.createElement('li');
-                        listItem.textContent = `${task}`;
-                        taskListElement.appendChild(listItem);
-                    });
+                                <form  id="uploadForm" method="post" action="/manager/tasks/" enctype="multipart/form-data">
+                                    <label class="input-file">
+                                        <input type="file" id="file" name="file"  accept=".py" style="display: none;">
+                                        <span type="file"     class="btn btn-two"> Выберите файл</span>
+                                        <button type="button"  class="btn btn-two" style=" top:0px; bottom:0px;" onclick="uploadTask()">Upload Task</button>
+                                    </label>
+                                </form>
 
 
-                })
-                .catch(error => console.error('Error updating task list:', error));
-        }
+                                
 
-        function addWorker() {
-            fetch(`${API_URL}/manager/workers/`, { method: 'POST' })
-                .then(response => response.json())
-                .then(data => {
-                    console.log('Created new worker:', data);
-                    updateWorkersList();
-                })
-                .catch(error => console.error('Error adding worker:', error));
-        }
 
-        function uploadTask() {
-        var formData = new FormData($('#uploadForm')[0]);
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <!-- newsletter-area-end -->
 
-        $.ajax({
-            url: '/manager/tasks/',
-            type: 'POST',
-            data: formData,
-            cache: false,
-            contentType: false,
-            processData: false,
-            success: function(response) {
-                console.log('Upload successful:', response);
-                location.reload();
-            },
-            error: function(error) {
-                console.error('Upload error:', error);
+           
+            <br><br>
+            <!-- choose-area -->
+            <!-- Queue of tasks here -->
+            <!-- Queue of tasks here -->
+            <!-- Queue of tasks here -->
+            <!-- Queue of tasks here -->
+            <section class="choose-area pb-130">
+                <div class="container">
+                     <div class="row justify-content-center">
+                        <div class="col-xl-6">
+                            <div class="section-title text-center mb-50">
+                                <h2 class="title">List of  <span>Workers</span></h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row choose-active">
+                        <div class="col-lg-3">
+                            <div class="choose-item">
+                                <div class="choose-content">
+                                    <h2 class="title">Mobile </h2>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-lg-3">
+                            <div class="choose-item">
+                                <div class="choose-content">
+                                    <h2 class="title"> the identity</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3">
+                            <div class="choose-item">
+                                <div class="choose-content">
+                                    <h2 class="title"> the identity</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3">
+                            <div class="choose-item">
+                                <div class="choose-content">
+                                    <h2 class="title"> the identity</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3">
+                            <div class="choose-item">
+                                <div class="choose-content">
+                                    <h2 class="title"> the identity</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3">
+                            <div class="choose-item">
+                                <div class="choose-content">
+                                    <h2 class="title"> the identity</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3">
+                            <div class="choose-item">
+                                <div class="choose-content">
+                                    <h2 class="title">Sercurity & control </h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="slide-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+                        <span class="slider__label sr-only"></span>
+                    </div>
+                </div>
+            </section>
+            <!-- choose-area-end -->
+
+        
+
+            <!-- List of workers here -->
+            <!-- List of workers here -->
+            <!-- List of workers here -->
+            <!-- List of workers here -->
+
+
+            <!-- contact-area -->
+            <section id="contact" class="contact-area pt-70 pb-110">
+                <div class="container">
+                    <div class="row justify-content-center">
+                        <div class="col-lg-8">
+                            <div class="section-title text-center mb-70">
+                                <span class="sub-title">Contact</span>
+                                <h2 class="title"><span>Contact</span> ICO Crypto</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="contact-info-wrap">
+                        <div class="row justify-content-center">
+                            <div class="col-lg-4 col-sm-6">
+                                <div class="contact-info-item">
+                                    <div class="icon">
+                                        <span class="icon-background"></span>
+                                        <i class="fas fa-envelope"></i>
+                                    </div>
+                                    <div class="content">
+                                        <p>company@gmail.com <br> infoweb@gmail.com</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-sm-6">
+                                <div class="contact-info-item">
+                                    <div class="icon">
+                                        <span class="icon-background"></span>
+                                        <i class="fas fa-phone"></i>
+                                    </div>
+                                    <div class="content">
+                                        <p>+84 0977425031<br> +998 765 775 34</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-sm-6">
+                                <div class="contact-info-item">
+                                    <div class="icon">
+                                        <span class="icon-background"></span>
+                                        <i class="fas fa-map-marker-alt"></i>
+                                    </div>
+                                    <div class="content">
+                                        <p>State/province/area: <br>Georgia 198</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                   
+                </div>
+            </section>
+            <!-- contact-area-end -->
+
+        </main>
+        <!-- main-area-end -->
+
+
+        <!-- footer-area -->
+        <footer>
+            <div class="footer-area">
+                <div class="container">
+                    <div class="footer-scroll-wrap">
+                        <button class="scroll-to-target" data-target="html"><i class="fas fa-arrow-up"></i></button>
+                    </div>
+                   
+                    
+                </div>
+            </div>
+        </footer>
+        <!-- footer-area-end -->
+
+
+
+
+        <!-- JS here -->
+        <script src="static/assets/js/vendor/jquery-3.6.0.min.js"></script>
+        <script src="static/assets/js/bootstrap.min.js"></script>
+        <script src="static/assets/js/jquery.odometer.min.js"></script>
+        <script src="static/assets/js/jquery.countdown.min.js"></script>
+        <script src="static/assets/js/jquery.knob.min.js"></script>
+        <script src="static/assets/js/jquery-countdowngampang.min.js"></script>
+        <script src="static/assets/js/jquery.ba-throttle-debounce.min.js"></script>
+        <script src="static/assets/js/jquery.mCustomScrollbar.min.js"></script>
+        <script src="static/assets/js/jarallax.min.js"></script>
+        <script src="static/assets/js/jquery.appear.js"></script>
+        <script src="static/assets/js/jquery.easing.js"></script>
+        <script src="static/assets/js/slick.min.js"></script>
+        <script src="static/assets/js/wow.min.js"></script>
+        <script src="static/assets/js/main.js"></script>
+
+
+        <script>
+            const API_URL = 'http://127.0.0.1:8000'
+            function updateWorkersList() {
+                fetch(`${API_URL}/manager/workers/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const workersListElement = document.getElementById('workersList');
+                        workersListElement.innerHTML = '';
+
+                        data.forEach(worker => {
+                            const listItem = document.createElement('li');
+
+                            const workerLink = document.createElement('a');
+                            workerLink.href = `http://${worker.name}/`;
+                            workerLink.textContent = `${worker.role}: ${worker.name} -> ${worker.state} -> ${worker.task ? worker.task : 'No task'}`;
+
+                            listItem.appendChild(workerLink);
+
+                            workersListElement.appendChild(listItem);
+                        });
+                    })
+                    .catch(error => console.error('Error updating workers list:', error));
             }
-        });
-    }
 
-        document.addEventListener('DOMContentLoaded', updateWorkersList);
-        document.addEventListener('DOMContentLoaded', updateTasksList);
-    </script>
+            function updateTasksList() {
+                fetch(`${API_URL}/manager/tasks/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const taskListElement = document.getElementById('tasksList');
+                        taskListElement.innerHTML = '';
 
-</body>
+                        const listItemTitle = document.createElement('span');
+                        const boldText = document.createElement('b');
+
+
+                        listItemTitle.textContent = (data.length > 0) ? `${data.length} tasks now:` : `Nothing`;
+                        taskListElement.appendChild(boldText);
+                        boldText.appendChild(listItemTitle);
+
+
+                        data.forEach(task => {
+                            const listItem = document.createElement('li');
+                            listItem.textContent = `${task}`;
+                            taskListElement.appendChild(listItem);
+                        });
+
+
+                    })
+                    .catch(error => console.error('Error updating task list:', error));
+            }
+
+            function addWorker() {
+                fetch(`${API_URL}/manager/workers/`, { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Created new worker:', data);
+                        updateWorkersList();
+                    })
+                    .catch(error => console.error('Error adding worker:', error));
+            }
+
+            function uploadTask() {
+                var formData = new FormData($('#uploadForm')[0]);
+
+                $.ajax({
+                    url: '/manager/tasks/',
+                    type: 'POST',
+                    data: formData,
+                    cache: false,
+                    contentType: false,
+                    processData: false,
+                    success: function(response) {
+                        console.log('Upload successful:', response);
+                        location.reload();
+                    },
+                    error: function(error) {
+                        console.error('Upload error:', error);
+                    }
+                });
+            }
+
+            document.addEventListener('DOMContentLoaded', updateWorkersList);
+            document.addEventListener('DOMContentLoaded', updateTasksList);
+        </script>
+    </body>
 </html>
