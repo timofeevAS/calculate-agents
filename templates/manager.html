@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta http-equiv="x-ua-compatible" content="ie=edge">
-        <title>Bigtech - ICO & Crypto Landing Page Template</title>
+        <title>Manager</title>
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -59,17 +59,7 @@
                                 <img src="static/assets/img/icon/fire.png" alt="">
                                 <h2 class="title">{{ name }} is  <span>welcoming</span> you! </h2>
                             </div>
-                           <!--  <div class="banner-progress-wrap">
-                                <ul>
-                                    <li>Pre Sell</li>
-                                    <li>Soft Cap</li>
-                                    <li>Bonus</li>
-                                </ul>
-                                <div class="progress">
-                                    <div class="progress-bar" role="progressbar" style="width: 75%;" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"></div>
-                                </div>
-                                <h4 class="title">65% target raised <span>1 ETH = $1000 = 3177.38 CIC</span></h4>
-                            </div> -->
+
                         </div>
                     </div>
 
@@ -77,7 +67,7 @@
                     <div class="row justify-content-center">
                         <div class="col-xl-10">
                             <div class="banner-countdown-wrap text-center">
-                                <!-- <h2 class="title">ICO Will Start In..</h2> -->
+
                                 <a ><button class="btn" type="button" onclick="addWorker()">Add Worker</button></a>
                                 <a href="/results" class="btn">Results</a>
                             </div>
@@ -139,57 +129,19 @@
                             </div>
                         </div>
                     </div>
+
                     <div class="row choose-active">
+                    {% for worker in worker_list %}
+
                         <div class="col-lg-3">
                             <div class="choose-item">
                                 <div class="choose-content">
-                                    <h2 class="title">Mobile </h2>
+                                    <h2 class="title">{{ worker }} </h2>
                                 </div>
                             </div>
                         </div>
-                        
-                        <div class="col-lg-3">
-                            <div class="choose-item">
-                                <div class="choose-content">
-                                    <h2 class="title"> the identity</h2>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-lg-3">
-                            <div class="choose-item">
-                                <div class="choose-content">
-                                    <h2 class="title"> the identity</h2>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-lg-3">
-                            <div class="choose-item">
-                                <div class="choose-content">
-                                    <h2 class="title"> the identity</h2>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-lg-3">
-                            <div class="choose-item">
-                                <div class="choose-content">
-                                    <h2 class="title"> the identity</h2>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-lg-3">
-                            <div class="choose-item">
-                                <div class="choose-content">
-                                    <h2 class="title"> the identity</h2>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-lg-3">
-                            <div class="choose-item">
-                                <div class="choose-content">
-                                    <h2 class="title">Sercurity & control </h2>
-                                </div>
-                            </div>
-                        </div>
+
+                    {% endfor %}
                     </div>
                     <div class="slide-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100">
                         <span class="slider__label sr-only"></span>
@@ -354,8 +306,10 @@
                     .then(data => {
                         console.log('Created new worker:', data);
                         updateWorkersList();
+
                     })
                     .catch(error => console.error('Error adding worker:', error));
+                location.reload();
             }
 
             function uploadTask() {

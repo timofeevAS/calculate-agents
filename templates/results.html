@@ -60,12 +60,12 @@
                     </div>
                     <div class="faq-wrap wow fadeInUp" data-wow-delay=".2s">
                         <div class="accordion" id="accordionExample">
-                            {% for file_name in files_list %}
+                            {% for worker in worker_list %}
 
                             <div class="accordion-item">
                                 <h2 class="accordion-header" id="headingTwo">
-                                    <a class="accordion-button collapsed" type="button" href='/download/{{ file_name }}' download>
-                                        {{ file_name }}
+                                    <a class="accordion-button collapsed" type="button" >
+                                        {{ worker }}
                                     </a>
                                 </h2>
                             </div>

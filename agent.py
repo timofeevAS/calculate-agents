@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 import time
 
@@ -422,8 +423,12 @@ async def home_page(request: Request,background_tasks:BackgroundTasks):
             # If role manager try to give_tasks
 
             logger.info("Rendering manager.html for the manager.")
-#            return templates.TemplateResponse("1manager.html", {"request": request, "name": name})
-            return templates.TemplateResponse("manager.html", {"request": request, "name": name})
+
+            file_path = "agents.json"
+            worker_list = parse_json_file(file_path)
+            worker_list = convert_to_string_list(worker_list)
+            logger.info(worker_list)
+            return templates.TemplateResponse("manager.html", {"request": request, "worker_list":worker_list,"name": name})
         else:
             # If the agent is not a manager, render the worker.html template
             logger.info("Rendering worker.html for the worker.")
@@ -442,6 +447,28 @@ def parse_directory(directory_path):
 
         return file_names
 
+
+def parse_json_file(file_path):
+    try:
+        with open(file_path, 'r') as file:
+            data = json.load(file)
+            return data
+    except FileNotFoundError:
+        print(f"Файл '{file_path}' не найден.")
+        return []
+    except json.JSONDecodeError:
+        print(f"Ошибка при декодировании JSON в файле '{file_path}'.")
+        return []
+
+
+def convert_to_string_list(data):
+    string_list = []
+    for item in data:
+        string = ""
+        for key, value in item.items():
+            string += f"{str(value)}\n"
+        string_list.append(string)
+    return string_list
 
 
 if __name__ == '__main__':
