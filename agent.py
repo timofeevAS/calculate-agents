@@ -431,6 +431,35 @@ async def home_page(request: Request,background_tasks:BackgroundTasks):
         return JSONResponse(content={'error': str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+async def check_connection():
+    async def become_manager():
+        pass
+    async def attempt_heal():
+        run_agent(manager_address.split(':')[0],manager_address.split(':')[1],'manager',manager_address)
+    async def is_manager_alive(manager_url: str):
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.get(manager_url) as response:
+                    if response.status == 200:
+                        print("Manager is alive.")
+                    else:
+                        print(f"Error: Manager returned status code {response.status}")
+            except Exception as e:
+                print(f"Error: Unable to connect to the manager. {e}")
+                await attempt_heal()
+
+
+    while True:
+        print(f"Checking connection with Manager: '{manager_address}'")
+        await is_manager_alive(f'http://{manager_address}')
+        await asyncio.sleep(30)  # 30 seconds awaiting
+
+@app.on_event("startup")
+async def startup_event():
+    if whoami.role == Role('worker'):
+        asyncio.create_task(check_connection())
+
+
 if __name__ == '__main__':
     args = parse_args()
     host = args.host
