@@ -53,7 +53,7 @@ This project created by SPBPU students.
 ## Dependecies
 
 * Python 3.11
-* FastAPI >= 0.103.x![Uploading svg-editor-image.svg…]()
+* FastAPI 
 
 
 ## Build
