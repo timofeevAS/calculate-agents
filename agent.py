@@ -10,7 +10,7 @@ import requests
 import hashlib
 
 import uvicorn
-from fastapi import FastAPI, Request, status, UploadFile, HTTPException,BackgroundTasks
+from fastapi import FastAPI, Request, status, UploadFile, HTTPException, BackgroundTasks
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse, FileResponse
 from starlette.staticfiles import StaticFiles
@@ -34,7 +34,6 @@ origins = [
 
 app.mount("/static", StaticFiles(directory="templates/static"), name="static")
 
-
 # setting up logging
 log_formatter = logging.Formatter('%(asctime)s %(levelname)s %(funcName)s(%(lineno)d) %(message)s')
 log_handler = RotatingFileHandler('app.log', maxBytes=100000, backupCount=3)
@@ -43,7 +42,6 @@ log_handler.setFormatter(log_formatter)
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 logger.addHandler(log_handler)
-
 
 
 def parse_args():
@@ -260,7 +258,6 @@ async def create_worker(request: Request):
         agents_db.save()  # Saving the updated worker list
         logger.info(f'A new worker has been created and launched: {worker}')
 
-
         return JSONResponse(content={'message': f'Created and run a new worker {worker}'},
                             status_code=status.HTTP_201_CREATED)
     except Exception as e:
@@ -364,6 +361,11 @@ async def give_task():
 
 @app.post('/manager/message/')
 async def check_any_works(request: Request, input: MessageInput):
+    """
+    This function reading message, incoming to manager
+
+    but now function NOT using, cause we have feedback when Worker can do one more task
+    """
     try:
         if input.message == 'any work':
             num = give_task()
@@ -374,10 +376,14 @@ async def check_any_works(request: Request, input: MessageInput):
 
 
 async def check_tasks(background_tasks: BackgroundTasks):
+    """
+    Feedback configure, NOT USED
+    """
     print('Starting inf loop (daemon)')
     while True:
         await give_task()
         await asyncio.sleep(5)
+
 
 @app.get("/download/{file_name}")
 async def download_file(file_name: str):
@@ -385,12 +391,13 @@ async def download_file(file_name: str):
     file_path = os.path.join(log_directory, file_name)
 
     return FileResponse(file_path, media_type="application/octet-stream", filename=file_name)
+
+
 @app.get('/manager/results/')
 async def get_results():
     log_directory = 'tasks_log'
     if not os.path.exists(log_directory):
         os.makedirs(log_directory)
-
 
     files = os.listdir(log_directory)
 
@@ -398,19 +405,21 @@ async def get_results():
 
     for file_name in files:
         file_path = os.path.join(log_directory, file_name)
-        results.append({'file_name': file_name,'path':file_path })
+        results.append({'file_name': file_name, 'path': file_path})
 
-    return JSONResponse(content=results,status_code=status.HTTP_200_OK)
+    return JSONResponse(content=results, status_code=status.HTTP_200_OK)
+
 
 @app.get('/results')
 async def results_page(request: Request):
     if whoami.role != Role('manager'):
         return HTTPException(status_code=404)
 
-    return templates.TemplateResponse('results.html',{"request": request, "name": whoami.name})
-@app.get('/')
-async def home_page(request: Request,background_tasks:BackgroundTasks):
+    return templates.TemplateResponse('results.html', {"request": request, "name": whoami.name})
 
+
+@app.get('/')
+async def home_page(request: Request, background_tasks: BackgroundTasks):
     try:
         # Generate a unique name using role and a hashed version of the agent's name
         name = str(whoami.role) + " " + hashlib.sha256(whoami.name.encode('utf-8')).hexdigest()[:10]
@@ -434,8 +443,10 @@ async def home_page(request: Request,background_tasks:BackgroundTasks):
 async def check_connection():
     async def become_manager():
         pass
+
     async def attempt_heal():
-        run_agent(manager_address.split(':')[0],manager_address.split(':')[1],'manager',manager_address)
+        run_agent(manager_address.split(':')[0], manager_address.split(':')[1], 'manager', manager_address)
+
     async def is_manager_alive(manager_url: str):
         async with aiohttp.ClientSession() as session:
             try:
@@ -448,11 +459,11 @@ async def check_connection():
                 print(f"Error: Unable to connect to the manager. {e}")
                 await attempt_heal()
 
-
     while True:
         print(f"Checking connection with Manager: '{manager_address}'")
         await is_manager_alive(f'http://{manager_address}')
         await asyncio.sleep(30)  # 30 seconds awaiting
+
 
 @app.on_event("startup")
 async def startup_event():
