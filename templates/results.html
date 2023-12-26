@@ -53,6 +53,7 @@
                 <img src="static/assets/img/images/faq_shape02.png" alt="" class="img-two rotateme">
                 <img src="static/assets/img/images/faq_shape03.png" alt="" class="img-three">
             </div>
+
             <div class="row">
                 <div class="col-lg-12">
                     <div class="section-title section-title-two text-center mb-60">
@@ -60,12 +61,12 @@
                     </div>
                     <div class="faq-wrap wow fadeInUp" data-wow-delay=".2s">
                         <div class="accordion" id="accordionExample">
-                            {% for worker in worker_list %}
+                            {% for file in files_list %}
 
                             <div class="accordion-item">
                                 <h2 class="accordion-header" id="headingTwo">
-                                    <a class="accordion-button collapsed" type="button" >
-                                        {{ worker }}
+                                    <a class="accordion-button collapsed" type="button" href="/download/{{ file }}" download>
+                                        {{ file }}
                                     </a>
                                 </h2>
                             </div>
