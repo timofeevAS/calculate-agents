@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 import time
 
@@ -407,7 +408,9 @@ async def results_page(request: Request):
     if whoami.role != Role('manager'):
         return HTTPException(status_code=404)
 
-    return templates.TemplateResponse('results.html',{"request": request, "name": whoami.name})
+    files_list = parse_directory("tasks_log")
+    print('files_list')
+    return templates.TemplateResponse('results.html',{"request": request, "files_list":files_list,  "name": whoami.name})
 @app.get('/')
 async def home_page(request: Request,background_tasks:BackgroundTasks):
 
@@ -416,11 +419,16 @@ async def home_page(request: Request,background_tasks:BackgroundTasks):
         name = str(whoami.role) + " " + hashlib.sha256(whoami.name.encode('utf-8')).hexdigest()[:10]
 
         if whoami.role == Role('manager'):
-            # If the agent is a manager, render the manager.html template
+            # If the agent is a manager, render the 1manager.html template
             # If role manager try to give_tasks
 
             logger.info("Rendering manager.html for the manager.")
-            return templates.TemplateResponse("manager.html", {"request": request, "name": name})
+
+            file_path = "agents.json"
+            worker_list = parse_json_file(file_path)
+            worker_list = convert_to_string_list(worker_list)
+            logger.info(worker_list)
+            return templates.TemplateResponse("manager.html", {"request": request, "worker_list":worker_list,"name": name})
         else:
             # If the agent is not a manager, render the worker.html template
             logger.info("Rendering worker.html for the worker.")
@@ -429,6 +437,38 @@ async def home_page(request: Request,background_tasks:BackgroundTasks):
         # Log any exceptions that may occur
         logger.exception(f'Error while rendering home page: {str(e)}')
         return JSONResponse(content={'error': str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+def parse_directory(directory_path):
+        file_names = []
+
+        if os.path.exists(directory_path) and os.path.isdir(directory_path):
+            files = os.listdir(directory_path)
+            for file in files:
+                file_names.append(file)
+
+        return file_names
+
+
+def parse_json_file(file_path):
+    try:
+        with open(file_path, 'r') as file:
+            data = json.load(file)
+            return data
+    except FileNotFoundError:
+        print(f"Файл '{file_path}' не найден.")
+        return []
+    except json.JSONDecodeError:
+        print(f"Ошибка при декодировании JSON в файле '{file_path}'.")
+        return []
+
+
+def convert_to_string_list(data):
+    string_list = []
+    for item in data:
+        string = ""
+        for key, value in item.items():
+            string += f"{str(value)}\n"
+        string_list.append(string)
+    return string_list
 
 
 async def check_connection():
@@ -461,6 +501,7 @@ async def startup_event():
 
 
 if __name__ == '__main__':
+
     args = parse_args()
     host = args.host
     port = args.port

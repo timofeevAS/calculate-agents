@@ -1,85 +1,151 @@
 <!-- templates/results.html -->
-<!DOCTYPE html>
-<html lang="en">
+
+
+<!doctype html>
+<html class="no-js" lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Results</title>
-            <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f0f0f0;
-            margin: 0;
-            padding: 0;
-        }
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <title>Bigtech - ICO & Crypto Landing Page Template</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        h1 {
-            color: #333;
-        }
+    <link rel="shortcut icon" type="image/x-icon" href="static/assets/img/favicon.png">
+    <!-- Place favicon.ico in the root directory -->
 
-        h2 {
-            color: #666;
-        }
-
-        ul {
-            list-style-type: none;
-            padding: 0;
-        }
-
-        li {
-            margin-bottom: 10px;
-        }
-
-        form {
-            margin-top: 10px;
-        }
-
-        button {
-            padding: 8px 16px;
-            background-color: #4caf50;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-
-        button:hover{
-            background-color: #45a049;
-        }
-
-        input[type="file"] {
-            margin-right: 10px;
-        }
-
-
-            input[type="file"].custom-file-input {
-
-        }
-
-        label.custom-file-label {
-            padding: 8px 16px;
-            background-color: darkgreen;
-            color: white;
-            cursor: pointer;
-        }
-
-        label.custom-file-label:hover {
-            background-color: #45a049;
-        }
-    </style>
+    <!-- CSS here -->
+    <link rel="stylesheet" href="static/assets/css/bootstrap.min.css">
+    <link rel="stylesheet" href="static/assets/css/animate.min.css">
+    <link rel="stylesheet" href="static/assets/css/fontawesome-all.min.css">
+    <link rel="stylesheet" href="static/assets/css/mCustomScrollbar.min.css">
+    <link rel="stylesheet" href="static/assets/css/odometer.css">
+    <link rel="stylesheet" href="static/assets/css/slick.css">
+    <link rel="stylesheet" href="static/assets/css/default.css">
+    <link rel="stylesheet" href="static/assets/css/style.css">
+    <link rel="stylesheet" href="static/assets/css/responsive.css">
 </head>
-<body>
-    <h1>Results Page</h1>
+<body class="white-background">
 
-    <!-- Отображение результатов -->
-    <ul id="resultsList"></ul>
+<!-- Preloader -->
+<div id="preloader">
+    <div class="spinner">
+        <div class="rect1"></div>
+        <div class="rect2"></div>
+        <div class="rect3"></div>
+        <div class="rect4"></div>
+        <div class="rect5"></div>
+    </div>
+</div>
+<!-- Preloader -->
 
-    <!-- Скрипт для загрузки данных с сервера -->
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const resultsList = document.getElementById('resultsList');
 
-            const API_URL = 'http://127.0.0.1:8000'
-            fetch(`${API_URL}/manager/results/`)
+<!-- main-area -->
+<main>
+
+
+
+
+    <!-- faq-area -->
+    <section id="faq" class="faq-area">
+        <div class="container custom-container-four">
+            <div class="faq-shape-wrap">
+                <img src="static/assets/img/images/faq_shape01.png" alt="" class="img-one">
+                <img src="static/assets/img/images/faq_shape02.png" alt="" class="img-two rotateme">
+                <img src="static/assets/img/images/faq_shape03.png" alt="" class="img-three">
+            </div>
+
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="section-title section-title-two text-center mb-60">
+                        <h2 class="title">Results </h2>
+                    </div>
+                    <div class="faq-wrap wow fadeInUp" data-wow-delay=".2s">
+                        <div class="accordion" id="accordionExample">
+                            {% for file in files_list %}
+
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingTwo">
+                                    <a class="accordion-button collapsed" type="button" href="/download/{{ file }}" download>
+                                        {{ file }}
+                                    </a>
+                                </h2>
+                            </div>
+
+                            {% endfor %}
+
+
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- faq-area-end -->
+
+
+</main>
+<!-- main-area-end -->
+
+
+<!-- footer-area -->
+<footer>
+    <div class="footer-area-two">
+        <div class="container custom-container-four">
+            <div class="footer-top">
+                <div class="row">
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <div class="row">
+                    <div class="col-lg-5">
+                        <div class="copyright-text">
+
+                        </div>
+                    </div>
+                    <div class="col-lg-2">
+                        <div class="scroll-up text-center">
+                            <button class="scroll-to-target" data-target="html"><i class="fas fa-arrow-up"></i></button>
+                            <span>scroll Top</span>
+                        </div>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="footer-bottom-menu">
+                            <ul>
+
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>
+<!-- footer-area-end -->
+
+
+<!-- JS here -->
+<script src="static/assets/js/vendor/jquery-3.6.0.min.js"></script>
+<script src="static/assets/js/bootstrap.min.js"></script>
+<script src="static/assets/js/jquery.odometer.min.js"></script>
+<script src="static/assets/js/jquery.countdown.min.js"></script>
+<script src="static/assets/js/jquery.knob.min.js"></script>
+<script src="static/assets/js/jquery-countdowngampang.min.js"></script>
+<script src="static/assets/js/jquery.ba-throttle-debounce.min.js"></script>
+<script src="static/assets/js/jquery.mCustomScrollbar.min.js"></script>
+<script src="static/assets/js/jarallax.min.js"></script>
+<script src="static/assets/js/jquery.appear.js"></script>
+<script src="static/assets/js/jquery.easing.js"></script>
+<script src="static/assets/js/slick.min.js"></script>
+<script src="static/assets/js/wow.min.js"></script>
+<script src="static/assets/js/main.js"></script>
+<!-- Скрипт для загрузки данных с сервера -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const resultsList = document.getElementById('resultsList');
+
+        const API_URL = 'http://127.0.0.1:8000'
+        fetch(`${API_URL}/manager/results/`)
                 .then(response => response.json())
                 .then(data => {
                     const resultsData = data;
@@ -99,7 +165,11 @@
                     });
                 })
                 .catch(error => console.error('Error fetching results:', error));
-        });
-    </script>
+    });
+</script>
 </body>
 </html>
+
+
+
+
