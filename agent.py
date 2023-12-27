@@ -35,16 +35,24 @@ origins = [
 app.mount("/static", StaticFiles(directory="templates/static"), name="static")
 
 # setting up logging
+# Create a formatter for log messages
 log_formatter = logging.Formatter('%(asctime)s %(levelname)s %(funcName)s(%(lineno)d) %(message)s')
+
+# Create a rotating file handler to log messages to a file 'app.log'
+# - Rotate files when they reach 100000 bytes
+# - Keep up to 3 backup log files
 log_handler = RotatingFileHandler('app.log', maxBytes=100000, backupCount=3)
 log_handler.setFormatter(log_formatter)
 
+# Get the root logger and configure it
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 logger.addHandler(log_handler)
 
-
+# --- Parsing command-line arguments ---
 def parse_args():
+    """Parses command-line arguments for agent configuration."""
+   # Positional arguments (required):
     parser = argparse.ArgumentParser(description='Agent Configuration')
 
     # Positional arguments
@@ -60,15 +68,21 @@ def parse_args():
 
     return parser.parse_args()
 
+# --- Configuration and initialization ---
+args = parse_args() # Parse command-line arguments
 
-args = parse_args()
-whoami = Agent(name=f'{args.host}:{args.port}', role=args.role)
-manager_address = args.manager_address
+whoami = Agent(name=f'{args.host}:{args.port}', role=args.role) # Create an agent with parsed configuration
+manager_address = args.manager_address # Extract manager address for later use
 
-
+# --- Endpoint for handling worker tasks ---
 @app.post("/workers/tasks/")
 async def worker_task(request: Request):
+    """Handles incoming tasks assigned to this worker."""
+
+    # --- Function to update worker state ---
     def update_worker_state(worker_name, new_state, task_name):
+        """Notifies the manager about a change in the worker's state."""
+
         endpoint = f'http://{manager_address}/manager/worker_state/'
         payload = {'worker_name': worker_name, 'state': new_state, 'task_name': task_name}
         response = requests.patch(endpoint, json=payload)
@@ -78,12 +92,13 @@ async def worker_task(request: Request):
         else:
             print(f"Failed to update worker state. Status code: {response.status_code}")
 
+    # --- Main logic for handling worker tasks ---
     if whoami.role != Role('worker'):
         logger.error('The manager cannot perform tasks, only control!')
         return JSONResponse(content={'error': 'Manager can\'t work, just control!'},
                             status_code=status.HTTP_400_BAD_REQUEST)
 
-    # Get data about task
+    # Get task information from request # Get data about task
     data = await request.json()
     task_name = data.get("task_name", None)
 
@@ -93,6 +108,7 @@ async def worker_task(request: Request):
                             status_code=status.HTTP_400_BAD_REQUEST)
     file_path = os.path.join("task_sources", task_name)
 
+    # Update worker state to "busy"
     update_worker_state(whoami.name, 'busy', task_name)
     whoami.state = State('busy')
 
@@ -123,24 +139,29 @@ async def worker_task(request: Request):
             logger.error(f'Task execution error: {response_data}')
             return JSONResponse(content=response_data, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     except Exception as e:
+        # Handle any errors during task execution
         logger.exception(f'An exception has occurred: {str(e)}')
         return JSONResponse(content={'error': str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     finally:
+        # Ensure worker state is updated to "ready" even if exceptions occur
         whoami.state = State('ready')
         update_worker_state(whoami.name, 'ready', task_name)
 
-
+# --- Function for assigning tasks to workers ---
 async def give_task_to_worker(worker: dict, task: dict):
+    """Sends a task to a specified worker."""
     payload = {'task_name': task['name']}
 
     async with aiohttp.ClientSession() as session:
         worker_url = f"http://{worker['name']}/workers/tasks/"
         try:
+            # Remove task from database (assuming a tasks_db object is available)
             index = tasks_db.get_index({"name": task['name']})
             print(f'try to find {task["name"]} with index {index}')
             tasks_db.remove_record(index)
             tasks_db.save()
 
+            # Send task to worker
             async with session.post(worker_url, json=payload) as response:
                 result = await response.json()
                 logger.info(f"Task given to worker {worker['name']}, response: {result}")
