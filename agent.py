@@ -35,16 +35,25 @@ origins = [
 app.mount("/static", StaticFiles(directory="templates/static"), name="static")
 
 # setting up logging
+# Create a formatter for log messages
 log_formatter = logging.Formatter('%(asctime)s %(levelname)s %(funcName)s(%(lineno)d) %(message)s')
+
+# Create a rotating file handler to log messages to a file 'app.log'
+# - Rotate files when they reach 100000 bytes
+# - Keep up to 3 backup log files
 log_handler = RotatingFileHandler('app.log', maxBytes=100000, backupCount=3)
 log_handler.setFormatter(log_formatter)
 
+# Get the root logger and configure it
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 logger.addHandler(log_handler)
 
-
+# --- Parsing command-line arguments ---
 def parse_args():
+    """Parses command-line arguments for agent configuration."""
+
+   # Positional arguments (required):
     parser = argparse.ArgumentParser(description='Agent Configuration')
 
     # Positional arguments
@@ -60,15 +69,18 @@ def parse_args():
 
     return parser.parse_args()
 
-
+#--- Configuration and initialization ---
 args = parse_args()
 whoami = Agent(name=f'{args.host}:{args.port}', role=args.role)
 manager_address = args.manager_address
 
-
+# --- Endpoint for handling worker tasks ---
 @app.post("/workers/tasks/")
 async def worker_task(request: Request):
+    """Handles incoming tasks assigned to this worker."""
+    # --- Function to update worker state ---
     def update_worker_state(worker_name, new_state, task_name):
+        """Notifies the manager about a change in the worker's state."""
         endpoint = f'http://{manager_address}/manager/worker_state/'
         payload = {'worker_name': worker_name, 'state': new_state, 'task_name': task_name}
         response = requests.patch(endpoint, json=payload)
@@ -131,20 +143,44 @@ async def worker_task(request: Request):
 
 
 async def give_task_to_worker(worker: dict, task: dict):
+    """
+    Function for assigning a task to a specified worker.
+
+    This function first removes the task from the database and then sends it to the specified worker.
+
+    Args:
+        worker (dict): Dictionary containing the worker's name and address.
+        task (dict): Dictionary containing the task's name and other relevant information.
+
+    Returns:
+        None
+    """
+
+    # Prepare the payload for the HTTP request
     payload = {'task_name': task['name']}
 
+    # Open an asynchronous HTTP session
     async with aiohttp.ClientSession() as session:
+        # Construct the URL for sending the task to the worker
         worker_url = f"http://{worker['name']}/workers/tasks/"
         try:
+            # Remove the task from the database
+            # (Assuming a tasks_db object is available)
             index = tasks_db.get_index({"name": task['name']})
             print(f'try to find {task["name"]} with index {index}')
             tasks_db.remove_record(index)
             tasks_db.save()
 
+            # Send the task to the specified worker
             async with session.post(worker_url, json=payload) as response:
+                # Retrieve the response from the worker
                 result = await response.json()
+
+                # Log the task delivery status
                 logger.info(f"Task given to worker {worker['name']}, response: {result}")
                 print(f"Task given to worker {worker['name']}, response: {result}")
+
+        # Handle any exceptions that may occur during task assignment
         except Exception as e:
             logger.exception(f"Error giving task to worker {worker['name']}: {str(e)}")
             print(f"Error giving task to worker {worker['name']}: {str(e)}")
@@ -214,15 +250,22 @@ async def append_task(file: UploadFile):
 
 @app.get("/manager/tasks/")
 async def tasks_list(request: Request):
+    """Provides a list of all available tasks."""
+    # Try to fetch all tasks from the database using `tasks_db`
     try:
         # Take all tasks
         tasks = tasks_db.get_all_records()
 
+        # Format the task list as a list of task names
         res = [(task['name']) for task in tasks]
         logger.info("The task list has been successfully received")
+
+        # Return the task list as JSON response with status code 200 (OK)
         return JSONResponse(content=res, status_code=status.HTTP_200_OK)
     except Exception as e:
         logger.exception(f'Error when getting the task list: {str(e)}')
+
+        # Handle any errors during task retrieval
         return JSONResponse(content={'error': str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -235,29 +278,37 @@ async def create_worker(request: Request):
     """
 
     try:
+        # Verify that the current agent is the manager
         if whoami.role != Role('manager'):
             logger.error('Unacceptable. The manager cannot create workers.')
             return JSONResponse(content={'error': f'Not allowed. Worker can\'t making friends'},
                                 status_code=status.HTTP_400_BAD_REQUEST)
 
+        # Get a free port for the new worker
         # Filling data in a new Worker
         free_port = find_free_port(8000, 8080)
 
+        # Set up the worker's name and address
         localhost = '127.0.0.1'
 
+        # Create a new `Agent` object for the worker
         worker = Agent(name=f"{localhost}:{free_port}", state=State('ready'), role=Role('worker'))
+
+        # Attempt to launch the worker process
         try:
             run_agent(localhost, free_port, 'worker', manager_address=manager_address)  # Running new worker
         except Exception as e:
-            # If we cant run new worker
+            # If launching the worker fails, handle the error
             logger.error(f'Error when creating a new worker: {e}')
             return JSONResponse(content={'message': f'Error via creating a new worker {e}'},
                                 status_code=status.HTTP_400_BAD_REQUEST)
 
+        # Add the newly created worker to the agents database
         agents_db.get_or_create(worker.model_dump())  # Append new worker
         agents_db.save()  # Saving the updated worker list
         logger.info(f'A new worker has been created and launched: {worker}')
 
+        # Return a success message with the worker's name
         return JSONResponse(content={'message': f'Created and run a new worker {worker}'},
                             status_code=status.HTTP_201_CREATED)
     except Exception as e:
@@ -331,29 +382,38 @@ async def set_worker_state(request: Request, update_data: WorkerStateUpdate):
 
 
 async def give_task():
+    """Checks for available tasks and distributes them to ready workers."""
+    # Identify free workers
     free_workers = []
 
     for agent in agents_db.get_all_records():
         if agent['role'] == 'worker' and agent['state'] == 'ready':
-            # If agent worker and free we can prepare him to task
+            # If agent worker and free we can prepare him to task 
+            #(if worker is free, add it to the list of available workers)
             free_workers.append(agent)
             logger.info(f'Worker {agent["name"]}: is ready to work!')
 
     # Giving tasks for free_workers
     tasks = tasks_db.get_all_records()
+
+    # Check if there are enough tasks for all available workers
     print(f'Checking queue for tasks and free agents: {len(free_workers)} workers for {len(tasks)} tasks')
     logger.info(f'All tasks: {tasks}')
 
     # Use asyncio.gather to perform asynchronous requests to all workers
     task_args = []
 
+    # Distribute tasks to available workers
     for index, worker in enumerate(free_workers):
         if index >= len(tasks):
             break  # Break if there are no more tasks
         print(f"Giving task_{index} for worker {worker}")
         logger.info(f"Giving task_{index} for worker {worker}")
+
+        # Create task arguments for each worker and task
         task_args.append((worker, tasks[index]))
 
+    # Execute task distribution asynchronously using `asyncio.create_task()'
     tasks = [asyncio.create_task(give_task_to_worker(*args)) for args in task_args]
 
     return len(task_args)
@@ -472,6 +532,9 @@ async def startup_event():
 
 
 if __name__ == '__main__':
+    """"Launchs a server using UVicorn library and given 'host' and 'port';
+        Logs init info and/or exception
+    """
     args = parse_args()
     host = args.host
     port = args.port
